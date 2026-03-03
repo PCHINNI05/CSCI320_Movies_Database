@@ -19,7 +19,7 @@ conn = psycopg2.connect(
 )
 cur = conn.cursor()
 
-# ── Load MovieLens data ──────────────────────────────────────────
+# ──────── Load MovieLens data ────────
 
 movies_ml = pd.read_csv("../data/ml-25m/movies.csv")
 # movieId, title, genres
@@ -30,7 +30,7 @@ ratings = pd.read_csv("../data/ml-25m/ratings.csv")
 links = pd.read_csv("../data/ml-25m/links.csv")
 # movieId, imdbId, tmdbId
 
-# ── Load TMDB data ───────────────────────────────────────────────
+# ──────── Load TMDB data ────────
 
 tmdb_movies = pd.read_csv("../data/tmdb_5000_movies.csv")
 # id (=tmdbId), title, production_companies, runtime, vote_average...
@@ -38,14 +38,14 @@ tmdb_movies = pd.read_csv("../data/tmdb_5000_movies.csv")
 tmdb_credits = pd.read_csv("../data/tmdb_5000_credits.csv")
 # movie_id (=tmdbId), cast, crew
 
-# ── Merge on tmdbId ──────────────────────────────────────────────
+# ──────── Merge on tmdbId ────────
 
 links["tmdbId"] = pd.to_numeric(links["tmdbId"], errors="coerce")
 merged = movies_ml.merge(links, on="movieId")
 merged = merged.merge(tmdb_movies, left_on="tmdbId", right_on="id", how="left")
 merged = merged.merge(tmdb_credits, left_on="tmdbId", right_on="movie_id", how="left")
 
-# ── Insert Genres ────────────────────────────────────────────────
+# ──────── Insert Genres ────────
 
 all_genres = set()
 for g in movies_ml["genres"]:
@@ -58,7 +58,7 @@ for genre_name in all_genres:
         (genre_name,)
     )
 
-# ── Insert Studios ───────────────────────────────────────────────
+# ──────── Insert Studios ────────
 
 for _, row in merged.iterrows():
     if pd.isna(row.get("production_companies")):
@@ -73,7 +73,7 @@ for _, row in merged.iterrows():
     except:
         continue
 
-# ── Insert Employees (cast + crew) ───────────────────────────────
+# ──────── Insert Employees (cast + crew) ────────
 
 for _, row in merged.iterrows():
     for col in ["cast", "crew"]:
@@ -94,7 +94,7 @@ for _, row in merged.iterrows():
         except:
             continue
 
-# ── Insert Movies ────────────────────────────────────────────────
+# ──────── Insert Movies ────────
 
 for _, row in merged.iterrows():
     length = int(row["runtime"]) if not pd.isna(row.get("runtime")) and row["runtime"] > 0 else 90
@@ -105,7 +105,7 @@ for _, row in merged.iterrows():
         (int(row["movieId"]), str(row["title_x"]), length)
     )
 
-# ── Insert has_genre ─────────────────────────────────────────────
+# ──────── Insert has_genre ────────
 
 for _, row in merged.iterrows():
     for genre_name in str(row["genres"]).split("|"):
@@ -118,12 +118,12 @@ for _, row in merged.iterrows():
                 (int(row["movieId"]), result[0])
             )
 
-# ── Insert acts_in + directs ─────────────────────────────────────
+# ──────── Insert acts_in + directs ────────
 
 for _, row in merged.iterrows():
     movie_id = int(row["movieId"])
 
-    # Cast → acts_in
+    # Cast --> acts_in
     if not pd.isna(row.get("cast")):
         try:
             for p in json.loads(row["cast"]):
@@ -136,7 +136,7 @@ for _, row in merged.iterrows():
         except:
             continue
 
-    # Crew → directs (directors only)
+    # Crew --> directs (directors only)
     if not pd.isna(row.get("crew")):
         try:
             for p in json.loads(row["crew"]):
@@ -150,7 +150,7 @@ for _, row in merged.iterrows():
         except:
             continue
 
-# ── Insert Ratings ───────────────────────────────────────────────
+# ──────── Insert Ratings ────────
 
 # First insert users from ratings (MovieLens has no user details, just IDs)
 user_ids = ratings["userId"].unique()
@@ -162,7 +162,7 @@ for uid in user_ids:
         (int(uid), str(uid), f"user{uid}", f"user{uid}@movielens.com")
     )
 
-# Then insert ratings in chunks (25M rows — do in batches)
+# Then insert ratings in chunks (25M rows - do in batches)
 chunk_size = 10000
 for i in range(0, len(ratings), chunk_size):
     chunk = ratings.iloc[i:i+chunk_size]
