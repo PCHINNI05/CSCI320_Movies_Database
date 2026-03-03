@@ -1,21 +1,20 @@
 import psycopg2
 import pandas as pd
 import json
-import configparser
 
-config = configparser.ConfigParser()
-config.read("../src/main/resources/db.properties")
-
-url = config["DEFAULT"]["db.url"]
-user = config["DEFAULT"]["db.user"]
-password = config["DEFAULT"]["db.password"]
+props = {}
+with open("../src/main/resources/db.properties") as f:
+    for line in f:
+        if "=" in line:
+            key, val = line.strip().split("=", 1)
+            props[key.strip()] = val.strip()
 
 conn = psycopg2.connect(
     host="127.0.0.1",
     port=5432,
-    dbname=url.split("/")[-1],
-    user=user,
-    password=password
+    dbname=props["db.url"].split("/")[-1],
+    user=props["db.user"],
+    password=props["db.password"]
 )
 cur = conn.cursor()
 
