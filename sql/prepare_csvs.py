@@ -37,7 +37,7 @@ for _, row in merged.iterrows():
         try:
             for p in json.loads(row[col]):
                 parts = p["name"].strip().split(" ", 1)
-                employees.add((parts[0], parts[1] if len(parts) > 1 else ""))
+                employees.add((parts[0], parts[1] if len(parts) > 1 else " "))
         except: continue
 pd.DataFrame(list(employees), columns=["first_name","last_name"]).to_csv("../data/out/employee.csv", index=False)
 
