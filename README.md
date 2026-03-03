@@ -67,7 +67,7 @@ cd CSCI320_MOVIES_DATABASE
 Create `src/main/resources/db.properties` — **this file is gitignored, never commit it:**
 
 ```properties
-db.url=jdbc:postgresql://localhost:5432/YOUR_CS_USERNAME
+db.url=jdbc:postgresql://localhost:5432/p32002_XX  # XX = your two-digit team number (e.g. 03, 11)
 db.user=YOUR_CS_USERNAME
 db.password=YOUR_CS_PASSWORD
 ```
@@ -79,6 +79,8 @@ db.password=YOUR_CS_PASSWORD
    - Host: `starbug.cs.rit.edu` · Port: `22`
    - Auth: Password (your CS credentials)
 3. General tab → Host: `localhost` · Port: `5432` · DB/User: your CS username
+
+> If connection fails, change Host from `localhost` to `127.0.0.1` on the General tab.
 
 ### 3. Build & Run
 
