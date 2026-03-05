@@ -16,7 +16,7 @@ public class App {
         int rport = 5432;
 
         Properties configFile = new Properties();
-        configFile.load(new java.io.FileInputStream("configs/connection.properties"));
+        configFile.load(new java.io.FileInputStream("db.properties"));
 
         String user = configFile.getProperty("user");
         String password = configFile.getProperty("password");

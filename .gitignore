@@ -6,4 +6,3 @@ db.properties
 *.iml
 data/
 .DS_Store
-configs/connection.properties
