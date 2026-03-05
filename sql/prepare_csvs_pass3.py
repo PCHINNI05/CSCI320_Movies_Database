@@ -20,6 +20,95 @@ COLLECTION_NAME_POOL = [
     "New Releases", "Best of the Decade", "Director Showcase", "Cult Classics",
     "Animated Greats", "Documentaries", "Foreign Films", "Thriller Night",
     "Oscar Winners", "Rainy Day Picks", "Feel-Good Movies", "Mind-Benders",
+
+    "Late Night Movies", "Sunday Chill", "Blockbuster Hits", "All-Time Favorites",
+    "Underrated Picks", "Critically Acclaimed", "Epic Adventures", "Tearjerkers",
+    "Laugh Out Loud", "Edge of Your Seat", "Nostalgia Trip", "Road Trip Movies",
+    "Coming of Age", "Dark Thrillers", "Classic Hollywood", "Modern Masterpieces",
+    "Indie Darlings", "Festival Favorites", "Award Season", "Director’s Cuts",
+    "Best Picture Winners", "Golden Age Cinema", "Retro Rewinds", "Throwback Night",
+    "Binge Worthy", "Movie Night Essentials", "Comfort Movies", "Feel Good Favorites",
+
+    "Spooky Season", "Halloween Marathon", "Christmas Classics", "Holiday Movies",
+    "Summer Blockbusters", "Winter Nights", "Spring Picks", "Autumn Vibes",
+    "Beach Day Movies", "Snow Day Cinema", "Rainy Afternoon", "Lazy Sunday",
+
+    "Action Marathon", "Explosive Action", "Martial Arts Madness", "Spy Thrillers",
+    "Superhero Saga", "Fantasy Worlds", "Epic Battles", "Adventure Time",
+    "Space Adventures", "Alien Encounters", "Time Travel Tales", "Cyberpunk Stories",
+
+    "Psychological Thrillers", "Mystery Night", "Whodunits", "Crime Stories",
+    "Heist Movies", "Detective Stories", "Gangster Classics", "True Crime Films",
+    "Courtroom Drama", "Police Stories", "Underworld Tales",
+
+    "Romantic Classics", "Rom-Com Favorites", "Love Stories", "Heartfelt Romance",
+    "Breakup Movies", "Hopeless Romantics", "Date Night Picks", "Romantic Dramas",
+
+    "Family Adventures", "Kids Favorites", "Animated Magic", "Pixar Style Picks",
+    "Cartoon Classics", "Family Movie Night", "Magical Worlds",
+
+    "Musical Movies", "Dance Films", "Concert Films", "Music Legends",
+    "Rock and Roll Movies", "Broadway on Screen",
+
+    "Sports Stories", "Underdog Tales", "Champion Stories", "Team Spirit",
+    "Olympic Stories", "Game Day Movies",
+
+    "War Epics", "Historical Dramas", "Period Pieces", "Ancient Worlds",
+    "Medieval Tales", "Biographical Films", "True Story Movies",
+
+    "Philosophical Films", "Thought Provoking", "Deep Cuts", "Art House Picks",
+    "Experimental Cinema", "Visual Masterpieces", "Slow Cinema",
+
+    "International Cinema", "European Classics", "Asian Cinema",
+    "Latin American Stories", "Global Cinema", "World Movie Tour",
+
+    "Director Spotlight", "Auteur Collection", "Visionary Filmmakers",
+    "Cinematography Showcase", "Screenwriting Greats",
+
+    "Cult Favorites", "Midnight Movies", "So Bad It’s Good",
+    "Camp Classics", "B-Movie Madness",
+
+    "Zombie Apocalypse", "Vampire Stories", "Monster Movies",
+    "Ghost Stories", "Haunted Nights", "Creature Features",
+
+    "Post-Apocalyptic Worlds", "Dystopian Futures", "Survival Stories",
+    "End of the World", "Disaster Movies",
+
+    "Tech and AI", "Virtual Reality", "Future Worlds",
+    "Robots and Machines", "Digital Nightmares",
+
+    "Travel the World", "City Stories", "Small Town Tales",
+    "Island Adventures", "Desert Journeys",
+
+    "Friendship Stories", "Family Drama", "Life Lessons",
+    "Growing Up Stories", "Second Chances",
+
+    "Chill Background Movies", "Easy Watching", "Lighthearted Picks",
+    "Weekend Relaxation", "Late Night Comfort",
+
+    "Study Break Movies", "After Finals", "Dorm Room Picks",
+    "College Favorites", "Procrastination Station",
+
+    "Top IMDb Picks", "Critics Choice", "Fan Favorites",
+    "Most Rewatched", "All-Time Hits",
+
+    "Short and Sweet", "Epic Length Films", "Three Hour Epics",
+    "Quick Watch", "Long Haul Cinema",
+
+    "Mind Twisters", "Plot Twist Movies", "Unreliable Narrators",
+    "Puzzle Movies", "Reality Benders",
+
+    "Feel the Adrenaline", "High Stakes", "Intense Drama",
+    "Emotional Rollercoaster", "Heart Racing",
+
+    "Quiet Masterpieces", "Minimalist Cinema",
+    "Atmospheric Films", "Moody Movies",
+
+    "Saturday Night Movies", "Friday Night Picks",
+    "Midweek Escape", "After Work Cinema",
+
+    "Ultimate Movie Marathon", "Mega Movie Night",
+    "The Long Watchlist", "Cinema Essentials",
 ]
 
 # ────────────── Load ID maps from pass1 ──────────────
@@ -40,9 +129,12 @@ movie_lengths = dict(zip(movie_df["movie_id"], movie_df["length"]))
 
 # ────────────── collection.csv (no id col - SERIAL assigns) ──────────────
 collections = []
+name_counters = {}
 for _ in range(NUM_COLLECTIONS):
     uid     = random.choice(seq_user_ids)
-    name    = f"{random.choice(COLLECTION_NAME_POOL)} #{random.randint(1, 999)}"
+    base    = random.choice(COLLECTION_NAME_POOL)
+    name_counters[base] = name_counters.get(base, 0) + 1
+    name    = base if name_counters[base] == 1 else f"{base} #{name_counters[base]}"
     created = BASE_DATE + timedelta(days=random.randint(0, 3000),
                                     hours=random.randint(0, 23),
                                     minutes=random.randint(0, 59))
@@ -56,7 +148,7 @@ collection_df = pd.DataFrame(collections)
 collection_df.to_csv("../data/out/collection.csv", index=False)
 # Sequential collection id = row index + 1 (matches SERIAL insert order)
 collection_seq_ids = list(range(1, NUM_COLLECTIONS + 1))
-print(f"collection.csv done - {len(collection_df):,} rows")
+print(f"collection.csv done — {len(collection_df):,} rows")
 
 # ────────────── collection_contents.csv ──────────────
 collection_contents = set()
