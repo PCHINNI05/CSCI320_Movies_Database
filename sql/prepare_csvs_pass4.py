@@ -21,19 +21,19 @@ merged = movie_df.merge(omdb_slim, on="movie_id", how="left")
 # mpaa_rating
 merged["mpaa_rating"] = merged["mpaa_rating_y"].fillna(merged["mpaa_rating_x"])
 
-# length — only replace if OMDb has a valid value
+# length - only replace if OMDb has a valid value
 merged["length"] = merged["runtime_min"].where(
     merged["runtime_min"].notna() & (merged["runtime_min"] > 0),
     merged["length"]
 ).astype(int)
 
-# title — use OMDb clean title (no year suffix) where available
+# title - use OMDb clean title (no year suffix) where available
 merged["title"] = merged["title_y"].where(
     merged["title_y"].notna(),
     merged["title_x"]
 )
 
-# Parse release year — prefer OMDb year, fall back to parsing MovieLens title "(YYYY)"
+# Parse release year - prefer OMDb year, fall back to parsing MovieLens title "(YYYY)"
 def extract_year(omdb_year, ml_title):
     try:
         y = int(str(omdb_year).strip()[:4])
@@ -54,7 +54,7 @@ merged["release_year"] = merged.apply(
     lambda r: extract_year(r["year"], r["title_x"]), axis=1
 )
 
-# Save updated movie.csv (drop all temp cols, keep no movie_id — SERIAL assigns)
+# Save updated movie.csv (drop all temp cols, keep no movie_id - SERIAL assigns)
 movie_out = merged[["title", "length", "mpaa_rating"]].copy()
 movie_out.to_csv("../data/out/movie.csv", index=False)
 print(f"movie.csv updated")
@@ -63,7 +63,7 @@ print(f"  length from OMDb   : {merged['runtime_min'].notna().sum():,}")
 print(f"  titles from OMDb   : {merged['title_y'].notna().sum():,}")
 
 # ────────────── Platform definitions ──────────────
-# No id col — SERIAL assigns 1..8 in this exact order
+# No id col - SERIAL assigns 1..8 in this exact order
 PLATFORMS = [
     # (name,          available_from_year)
     ("Theater",       1888),
@@ -80,7 +80,7 @@ PLATFORM_START = {name: yr   for name, yr in PLATFORMS}
 
 pd.DataFrame([{"platform_name": name} for name, _ in PLATFORMS]) \
     .to_csv("../data/out/platform.csv", index=False)
-print(f"\nplatform.csv written — {len(PLATFORMS)} platforms")
+print(f"\nplatform.csv written - {len(PLATFORMS)} platforms")
 
 STREAMING = ["Netflix", "Hulu", "Amazon Prime", "Disney+", "HBO Max"]
 
@@ -106,7 +106,7 @@ for _, row in merged.iterrows():
 
     # ── Determine first release type ──
     if year is None:
-        # No year info — just assign random streaming platforms
+        # No year info - just assign random streaming platforms
         for p in random.sample(STREAMING, k=random.randint(1, 3)):
             entries[PLATFORM_IDS[p]] = rand_date(random.randint(2010, 2023))
         for pid, dt in entries.items():
@@ -158,7 +158,7 @@ for _, row in merged.iterrows():
         if br_year <= 2023:
             entries[PLATFORM_IDS["Blu-ray"]] = f"{br_year}-{br_month:02d}-{random.randint(1,28):02d}"
     elif year >= 1888:
-        # Older classic — chance of a Blu-ray remaster release
+        # Older classic - chance of a Blu-ray remaster release
         if random.random() < 0.30:
             br_year = random.randint(2008, 2020)
             entries[PLATFORM_IDS["Blu-ray"]] = rand_date(br_year)
@@ -186,7 +186,7 @@ for _, row in merged.iterrows():
 
 has_platform_df = pd.DataFrame(has_platform).drop_duplicates(subset=["movie_id", "platform_id"])
 has_platform_df.to_csv("../data/out/has_platform.csv", index=False)
-print(f"has_platform.csv written — {len(has_platform_df):,} rows")
+print(f"has_platform.csv written - {len(has_platform_df):,} rows")
 
 # ────────────── Summary ──────────────
 dist = has_platform_df.merge(
