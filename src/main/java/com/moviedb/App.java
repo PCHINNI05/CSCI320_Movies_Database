@@ -2,6 +2,8 @@ package com.moviedb;
 
 import java.util.Scanner;
 
+import com.moviedb.dao.UserDAO;
+
 /**
  * Entry point. Handles the top-level menu and keeps track of who's logged in.
  * All feature logic lives in the DAOs, this file just drives the UI.
@@ -12,6 +14,8 @@ public class App {
     public static String currentUsername = null;
 
     static final Scanner scanner = new Scanner(System.in);
+
+    private static final UserDAO userDAO = new UserDAO();
 
     public static void main(String[] args) {
         printBanner();
@@ -90,14 +94,46 @@ public class App {
 
     // --> Auth stubs (will be replaced when UserDAO is built) <--
 
+    /**
+     * Prompts for credentials and attempts login. On success, stashes the session
+     * state and drops the user into the main menu. Error messages come from the DAO.
+     */
     private static void handleLogin() {
-        System.out.println("  [Login - coming soon]");
-        // TODO: prompt credentials --> UserDAO.login() --> set currentUserId/currentUsername --> showMainMenu()
+        System.out.println();
+        String username = readLine("Username: ");
+        String password = readLine("Password: ");
+
+        int userId = userDAO.login(username, password);
+        if (userId == -1) return;
+
+        currentUserId   = userId;
+        currentUsername = username;
+
+        System.out.printf("%n  Welcome back, %s!%n", userDAO.getFullName(userId));
+        showMainMenu();
     }
 
+    /**
+     * Walks the user through account creation, then auto-logs them in so they
+     * don't have to immediately turn around and log in again. Duplicate username
+     * and email checks happen inside the DAO.
+     */
     private static void handleRegister() {
-        System.out.println("  [Register - coming soon]");
-        // TODO: prompt details --> UserDAO.register() --> auto-login --> showMainMenu()
+        System.out.println();
+        String firstName = readLine("First Name:  ");
+        String lastName  = readLine("Last Name:   ");
+        String username  = readLine("Username:    ");
+        String email     = readLine("Email:       ");
+        String password  = readLine("Password:    ");
+
+        int userId = userDAO.register(firstName, lastName, username, email, password);
+        if (userId == -1) return;
+
+        currentUserId   = userId;
+        currentUsername = username;
+
+        System.out.printf("%n  Account created! Welcome, %s!%n", firstName);
+        showMainMenu();
     }
 
     /**
