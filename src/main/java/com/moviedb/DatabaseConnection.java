@@ -83,7 +83,7 @@ public class DatabaseConnection {
         Properties props = new Properties();
 
         // Maven copies resources/ to the classpath root at build time
-        var stream = DatabaseConnection.class.getClassLoader().getResourceAsStream("db.properties2");
+        var stream = DatabaseConnection.class.getClassLoader().getResourceAsStream("db.properties");
         if (stream == null) throw new Exception("db.properties not found in resources/. Did you create it?");
 
         props.load(stream);
