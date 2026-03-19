@@ -5,7 +5,9 @@ import java.util.Scanner;
 import com.moviedb.dao.UserDAO;
 
 import java.sql.Connection;
+
 import com.moviedb.dao.CollectionDAO;
+import com.moviedb.dao.SocialDAO;
 
 /**
  * Entry point. Handles the top-level menu and keeps track of who's logged in.
@@ -20,6 +22,7 @@ public class App {
 
     private static final UserDAO userDAO = new UserDAO();
     private static final CollectionDAO collectionDAO = new CollectionDAO();
+    private static final SocialDAO socialDAO = new SocialDAO();
 
     public static void main(String[] args) {
         printBanner();
@@ -89,7 +92,7 @@ public class App {
                 case 2  -> handleCollections();
                 case 3  -> System.out.println("  [Watch - coming soon]");
                 case 4  -> System.out.println("  [Ratings - coming soon]");
-                case 5  -> System.out.println("  [Social - coming soon]");
+                case 5  -> handleSocial();
                 case 0  -> loggedIn = handleLogout();
                 default -> System.out.println("  Not a valid option, try again.");
             }
@@ -286,6 +289,87 @@ public class App {
             System.out.println("  Error removing movie: " + e.getMessage());
         }
     }
+
+    /**
+     * The "Social" menu, where you can follow and unfollow other users, and view your followers / following lists.
+     */
+    private static void handleSocial() {
+        boolean inSocialMenu = true;
+
+        while (inSocialMenu) {
+            printDivider();
+            System.out.println("  Social");
+            printDivider();
+            System.out.println("  1. View My Followers");
+            System.out.println("  2. View My Following");
+            System.out.println("  3. Follow a User");
+            System.out.println("  4. Unfollow a User");
+            System.out.println("  0. Back");
+            printDivider();
+            System.out.print("  > ");
+
+            switch (readInt()) {
+                case 1  -> viewMyFollowers();
+                case 2  -> viewMyFollowing();
+                case 3  -> followUser();
+                case 4  -> unfollowUser();
+                case 0  -> inSocialMenu = false;
+                default -> System.out.println("  Not a valid option, try again.");
+            }
+        }
+    }
+    /**
+     * Fetches and displays all followers of the logged-in user, along with their usernames and full names.
+     */
+    private static void viewMyFollowers() {
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            socialDAO.viewFollowers(conn, currentUserId);
+        } catch (Exception e) {
+            System.out.println("  Error loading collection details: " + e.getMessage());
+        }
+    }
+    /**
+     * Fetches and displays all users that the logged-in user is following, along with their usernames and full names.
+     */
+    private static void viewMyFollowing() {
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            socialDAO.viewFollowing(conn, currentUserId);
+        } catch (Exception e) {
+            System.out.println("  Error loading collection details: " + e.getMessage());
+        }
+    }
+    /**
+     * Follows a user by their username.
+     */
+    private static void followUser() {
+        String userEmail = readLine("User email to follow: ");
+
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            socialDAO.followUser(conn, currentUserId, userEmail);
+            System.out.println("  Now following user with email " + userEmail);
+        } catch (Exception e) {
+            System.out.println("  Error following user: " + e.getMessage());
+        }
+    }
+    /**
+    * Unfollows a user by their username.
+    */
+    private static void unfollowUser() {
+        String userEmail = readLine("User email to unfollow: ");
+
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            socialDAO.unfollowUser(conn, currentUserId, userEmail);
+            System.out.println("  Unfollowed user with email " + userEmail);
+        } catch (Exception e) {
+            System.out.println("  Error unfollowing user: " + e.getMessage());
+        }
+    }
+
+
 
     private static int readIntPrompt(String prompt) {
         while (true) {
