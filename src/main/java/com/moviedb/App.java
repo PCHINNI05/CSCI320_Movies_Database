@@ -7,6 +7,8 @@ import com.moviedb.dao.UserDAO;
 import java.sql.Connection;
 import com.moviedb.dao.CollectionDAO;
 
+import com.moviedb.dao.MovieDAO;
+
 /**
  * Entry point. Handles the top-level menu and keeps track of who's logged in.
  * All feature logic lives in the DAOs, this file just drives the UI.
@@ -20,6 +22,7 @@ public class App {
 
     private static final UserDAO userDAO = new UserDAO();
     private static final CollectionDAO collectionDAO = new CollectionDAO();
+    private static final MovieDAO movieDAO = new MovieDAO();
 
     public static void main(String[] args) {
         printBanner();
@@ -88,7 +91,7 @@ public class App {
                 case 1  -> System.out.println("  [Movie Search - coming soon]");
                 case 2  -> handleCollections();
                 case 3  -> System.out.println("  [Watch - coming soon]");
-                case 4  -> System.out.println("  [Ratings - coming soon]");
+                case 4  -> handleRateMovie();
                 case 5  -> System.out.println("  [Social - coming soon]");
                 case 0  -> loggedIn = handleLogout();
                 default -> System.out.println("  Not a valid option, try again.");
@@ -284,6 +287,20 @@ public class App {
             System.out.println("  Movie removed from collection.");
         } catch (Exception e) {
             System.out.println("  Error removing movie: " + e.getMessage());
+        }
+    }
+
+    private static void handleRateMovie() {
+        int movieId = readIntPrompt("Movie ID to rate: ");
+        int rating = readIntPrompt("Star rating (1-5): ");
+
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            MovieDAO movieDAO = new MovieDAO();
+            movieDAO.rateMovie(conn, currentUserId, movieId, rating);
+            System.out.println("  Movie rated.");
+        } catch (Exception e) {
+            System.out.println("  Error rating movie: " + e.getMessage());
         }
     }
 
