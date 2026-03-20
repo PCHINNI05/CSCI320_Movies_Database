@@ -300,7 +300,6 @@ public class App {
 
         try {
             Connection conn = DatabaseConnection.getConnection();
-            MovieDAO movieDAO = new MovieDAO();
             movieDAO.rateMovie(conn, currentUserId, movieId, rating);
             System.out.println("  Movie rated.");
         } catch (Exception e) {
@@ -309,14 +308,34 @@ public class App {
     }
 
     private static void handleWatchMovie() {
-        int movieId = readIntPrompt("Movie ID to watch: ");
+        printDivider();
+        System.out.println("  1. Watch a single movie");
+        System.out.println("  2. Play an entire collection");
+        System.out.println("  0. Back");
+        printDivider();
+        System.out.print("  > ");
 
-        try {
-            Connection conn = DatabaseConnection.getConnection();
-            watchDAO.watchMovie(conn, currentUserId, movieId);
-            System.out.println("You watched the movie.");
-        } catch (Exception e) {
-            System.out.println("  Error recording watch: " + e.getMessage());
+        switch (readInt()) {
+            case 1 -> {
+                int movieId = readIntPrompt("Movie ID to watch: ");
+                try {
+                    watchDAO.watchMovie(DatabaseConnection.getConnection(), currentUserId, movieId);
+                    System.out.println("  Marked as watched!");
+                } catch (Exception e) {
+                    System.out.println("  Error recording watch: " + e.getMessage());
+                }
+            }
+            case 2 -> {
+                int collectionId = readIntPrompt("Collection ID to play: ");
+                try {
+                    watchDAO.watchCollection(DatabaseConnection.getConnection(), currentUserId, collectionId);
+                    System.out.println("  Entire collection marked as watched!");
+                } catch (Exception e) {
+                    System.out.println("  Error recording collection watch: " + e.getMessage());
+                }
+            }
+            case 0 -> {}
+            default -> System.out.println("  Not a valid option.");
         }
     }
 

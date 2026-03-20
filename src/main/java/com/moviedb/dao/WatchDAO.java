@@ -28,4 +28,27 @@ public class WatchDAO {
             }
         }
     }
+
+    // Plays every movie in a collection. Inserts a "watches" row for each one
+    public void watchCollection(Connection connect, int userID, int collectionID) throws Exception {
+        String sql = """
+            INSERT INTO watches (user_id, movie_id, start_time, end_time)
+            SELECT
+                ?,
+                m.movie_id,
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP + (m.length * INTERVAL '1 minute')
+            FROM collection_contents cc
+            JOIN movie m ON cc.movie_id = m.movie_id
+            WHERE cc.collection_id = ?
+            """;
+        try (var statement = connect.prepareStatement(sql)) {
+            statement.setInt(1, userID);
+            statement.setInt(2, collectionID);
+            int rows = statement.executeUpdate();
+            if (rows == 0) {
+                throw new Exception("Collection is empty or not found.");
+            }
+        }
+    }
 }
