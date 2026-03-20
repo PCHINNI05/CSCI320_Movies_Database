@@ -10,10 +10,6 @@ import java.sql.Connection;
 import com.moviedb.dao.CollectionDAO;
 import com.moviedb.dao.MovieDAO;
 
-import com.moviedb.dao.MovieDAO;
-
-
-
 /**
  * Entry point. Handles the top-level menu and keeps track of who's logged in.
  * All feature logic lives in the DAOs, this file just drives the UI.
@@ -114,7 +110,6 @@ public class App {
     private static void handleMovieSearch() {
         printDivider();
         System.out.println("  Search movies by:");
-        System.out.println("  Search movies by:");
         System.out.println("  1. Title");
         System.out.println("  2. Release Date  (YYYY, YYYY-MM, or YYYY-MM-DD)");
         System.out.println("  3. Cast Member");
@@ -123,7 +118,7 @@ public class App {
         System.out.println("  0. Back");
         printDivider();
 
-        System.out.println("  > ");
+        System.out.print("  > ");
 
         int choice = readInt();
         if (choice == 0) return;
