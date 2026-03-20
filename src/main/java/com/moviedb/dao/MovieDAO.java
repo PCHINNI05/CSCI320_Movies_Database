@@ -1,12 +1,37 @@
+/**
+ * FILE: MovieDAO.java
+ *
+ * DESCRIPTION:
+ *   MovieDAO handles all database interactions related to movies.
+ *   Provides methods to search for movies by title, release date, cast member, studio, or genre,
+ *   sort search results, and display the results. 
+ *   Each search returns movie details including title, cast, director, length, MPAA rating, 
+ *   release date, and average user rating.
+ *
+ * AUTHORS:
+ *   - Ibtehaz Rafid     (ir9269)
+ *   - Samuel Stewart    (ses1251)
+ *
+ * COURSE:  CSCI 320 - Principles of Data Management
+ * SECTION: 02
+ * TERM:    Spring 2026
+ * GROUP:   #18
+ */
+
 package com.moviedb.dao;
+
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 import com.moviedb.DatabaseConnection;
 
-import java.sql.*;
-import java.util.*;
-
 public class MovieDAO {
 
+    /**
+     * Represents a movie search result.
+     */
     public record MovieResult(
             int    movieId,
             String title,
@@ -20,7 +45,7 @@ public class MovieDAO {
             double avgRating      // 0.0 means no ratings yet
     ) {}
 
-    // All searches share the same big JOIN — only the WHERE clause differs
+    /** All searches have the same JOIN, with only the WHERE clause differing between search modes */
     private static final String BASE_QUERY = """
             SELECT
                 m.movie_id,
@@ -47,57 +72,224 @@ public class MovieDAO {
             LEFT JOIN rates       r   ON m.movie_id = r.movie_id
             """;
 
-    // Default sort after a fresh search: alpha by title, then earliest release date
+    /** Default sort after a search: alpha by title, then earliest release date */
     private static final String GROUP_AND_ORDER = """
             GROUP BY m.movie_id, m.title, m.length, m.mpaa_rating
             ORDER BY m.title ASC, MIN(hp.release_date) ASC
             """;
 
-    // ---------- Search ----------
 
+
+    /**
+     * Adds the appropriate WHERE clause to the base query in order to
+     * search for movies by title (case-insensitive).
+     * 
+     * @param title the movie title or partial title to search for
+     * @return a list of matching MovieResult objects
+     */
     public List<MovieResult> searchByTitle(String title) {
-        return List.of();
+        return searchMovies(BASE_QUERY + "WHERE m.title ILIKE ?\n", title);
     }
 
+    /**
+     * Adds the appropriate WHERE clause to the base query in order to
+     * search for movies by release date (year or full date).
+     * 
+     * @param date date the release date or year prefix
+     * @return a list of matching MovieResult objects
+     */
     public List<MovieResult> searchByReleaseDate(String date) {
-        return List.of();
+        return searchMovies(BASE_QUERY + "WHERE TO_CHAR(hp.release_date, 'YYYY-MM-DD') LIKE ?\n" + GROUP_AND_ORDER, date +"%");
     }
 
+    /**
+     * Adds the appropriate WHERE clause to the base query in order to
+     * search for movies by cast member name (case-insensitive).
+     * 
+     * @param name the full or partial name of a cast member
+     * @return a list of matching MovieResult objects
+     */
     public List<MovieResult> searchByCastMember(String name) {
-        return List.of();
+        return searchMovies(BASE_QUERY + "WHERE TRIM(e_a.first_name || ' ' || e_a.last_name) ILIKE ?\n" + GROUP_AND_ORDER, "%" + name + "%");
     }
 
+    /**
+     * Adds the appropriate WHERE clause to the base query in order to
+     * search for movies by studio (case-insensitive).
+     * 
+     * @param studio the studio name or partial name
+     * @return a list of matching MovieResult objects
+     */
     public List<MovieResult> searchByStudio(String studio) {
-        return List.of();
+        return searchMovies(BASE_QUERY + "WHERE s.name ILIKE ?\n" + GROUP_AND_ORDER, "%" + studio + "%");
     }
 
+    /**
+     * Adds the appropriate WHERE clause to the base query in order to
+     * search for movies by genre (case-insensitive).
+     * 
+     * @param genre the genre name or partial name
+     * @return a list of matching MovieResult objects
+     */
     public List<MovieResult> searchByGenre(String genre) {
-        return List.of();
+        return searchMovies(BASE_QUERY + "WHERE g.genre_name ILIKE ?\n" + GROUP_AND_ORDER, "%" + genre + "%");
     }
 
-    // ---------- Sort ----------
 
-    /** Field options: "title", "studio", "genre", "year" */
+
+    /**
+     * * Sorts a list of movie results based on the specified field and order.
+     * 
+     * If the field is null or unrecognized the sorting defaults to movie title.
+     * Sorting can be set in ascending or descending order.
+     * 
+     * @param results the list of MovieResult obects to sort
+     * @param field the field to sort by ("title", "studio", "genre", "year")
+     * @param ascending true for ascending order, false for descending order
+     * @return
+     */
     public List<MovieResult> sort(List<MovieResult> results, String field, boolean ascending) {
+        Comparator<MovieResult> cheeseburger;
+        if (field == null || field.equalsIgnoreCase("title")) {
+            cheeseburger = new Comparator<MovieResult>() {
+                public int compare(MovieResult a, MovieResult b) {
+                    return a.title().toLowerCase().compareTo((b.title().toLowerCase()));
+                }
+            };
+        } else if (field.equalsIgnoreCase("studio")) {
+            cheeseburger = new Comparator<MovieResult>() {
+                public int compare(MovieResult a, MovieResult b) {
+                    return nullSafe(a.studios()).compareTo((nullSafe(b.studios())));
+                }
+            };
+        } else if (field.equalsIgnoreCase("genre")) {
+            cheeseburger = new Comparator<MovieResult>() {
+                public int compare(MovieResult a, MovieResult b) {
+                    return nullSafe(a.genres()).compareTo((nullSafe(b.genres())));
+                }
+            };
+        } else if (field.equalsIgnoreCase("year")) {
+            cheeseburger = new Comparator<MovieResult>() {
+                public int compare(MovieResult a, MovieResult b) {
+                    return nullSafe(a.releaseDate()).compareTo((nullSafe(b.releaseDate())));
+                }
+            };
+        } else {
+            cheeseburger = new Comparator<MovieResult>() {
+                public int compare(MovieResult a, MovieResult b) {
+                    return a.title().toLowerCase().compareTo(b.title().toLowerCase());
+                }
+            };
+        }
+        if (!ascending) {
+            final Comparator<MovieResult> orig = cheeseburger;
+            cheeseburger = new Comparator<MovieResult>() {
+                public int compare(MovieResult a, MovieResult b) {
+                    return -orig.compare(a,b);
+                }
+            };
+        }
+        results.sort(cheeseburger);
         return results;
+
     }
 
-    // ---------- Display ----------
 
-    public void printResults(List<MovieResult> results) {}
-
-    // ---------- Private helpers ----------
-
-    private List<MovieResult> runSearch(String sql, String param) {
-        return List.of();
+    /**
+     * Prints a formatted list of movie search results to the console.
+     * Displays each movie with its title, cast, director, length (runtime),
+     * MPAA rating, and average user rating.
+     * If no results found, a message is shown instead.
+     * 
+     * @param results the list of MovieResult objects to display
+     */
+    public void printResults(List<MovieResult> results) {
+        if (results.isEmpty()) {
+            System.out.println("\n There's nothing in here, Shakespeare! They say a movie is worth a billion words, so you can definitely broaden your search.");
+            return;
+        }
+        System.out.printf("%n Found %d movie(s):%n", results.size());
+        for (int i = 0; i < results.size(); i++) {
+            MovieResult r = results.get(i);
+            String year;
+            if (r.releaseDate() != null) {
+                year = r.releaseDate().substring(0, 4);
+            } else {
+                year = "N/A";
+            }
+            String rating;
+            if(r.avgRating() > 0) {
+                rating = String.format("%.1f* (user avg)", r.avgRating());
+            } else {
+                rating = "no user ratings yet";
+            }
+            System.out.println();
+            System.out.printf("  [%d] %s. (%s)%n", i + 1, r.title(), year);
+            System.out.printf("      Cast:      %s%n", checkNA(r.cast()));
+            System.out.printf("      Director:  %s%n", checkNA(r.directors()));
+            System.out.printf("      Runtime: %d min  MPAA: %-6s  Rating: %s%n", r.lengthMinutes(), r.mpaaRating(), rating);
+        }
     }
 
-    /** Null-safe lower-case string for sorting — nulls sort to the end. */
+    
+    /**
+     * Executes a movie search and returns the results.
+     * 
+     * This method prepares a SQL query, inserts the search parameter,
+     * executes the query, and converts each row od the result set into
+     * a @MovieResult object.
+     * 
+     * @param sql the query to execute (must contain a single param placeholder '?')
+     * @param searchFor the value to bind to the query's parameter
+     * @return a list of @MovieResult objects matching the search criteria
+     *         empty list if no results found/an error occured.
+     */
+    private List<MovieResult> searchMovies(String sql, String searchFor) {
+        List<MovieResult> result = new ArrayList<>();
+        try (var statement = DatabaseConnection.getConnection().prepareStatement(sql)) {
+            statement.setString(1, searchFor);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                double average = rs.getDouble("avg_rating");
+                boolean hasRating = !rs.wasNull();
+                result.add(new MovieResult(
+                    rs.getInt("movie_id"),
+                    rs.getString("title"),
+                    rs.getString("cast_members"),
+                    rs.getString("directors"),
+                    rs.getString("studios"),
+                    rs.getString("genres"),
+                    rs.getInt("length"),
+                    rs.getString("mpaa_rating"),
+                    rs.getString("release_date"),
+                    hasRating ? average: 0.0));
+            }
+        } catch (Exception e) {
+            System.err.println("  Search failed: " + e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * Helper function to return a lowercase version of the string.
+     * @param s the input string
+     * @return lowercase version of the string, or "zzz" if null
+     */
     private String nullSafe(String s) {
         return s == null ? "zzz" : s.toLowerCase();
     }
 
-    private String orNA(String s) {
-        return (s == null || s.isBlank()) ? "N/A" : s;
+    /**
+     * Helper function to check if a string is null
+     * or blank and returns "N/A" if so.
+     * @param s the input string
+     * @return the original string if not null/blank, else "N/A"
+     */
+    private String checkNA(String s) {
+        if (s == null || s.isBlank()) {
+            return "N/A";
+        } else {
+            return s;
+        }
     }
 }
