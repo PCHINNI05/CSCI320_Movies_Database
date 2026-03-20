@@ -28,7 +28,6 @@ public class App {
     private static final UserDAO userDAO = new UserDAO();
     private static final MovieDAO movieDAO = new MovieDAO();
     private static final CollectionDAO collectionDAO = new CollectionDAO();
-    private static final MovieDAO movieDAO = new MovieDAO();
     private static final WatchDAO watchDAO = new WatchDAO();
 
     public static void main(String[] args) {
