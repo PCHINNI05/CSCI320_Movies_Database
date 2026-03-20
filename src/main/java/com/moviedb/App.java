@@ -4,10 +4,15 @@ import java.util.List;
 import java.util.Scanner;
 
 import com.moviedb.dao.UserDAO;
+import com.moviedb.dao.WatchDAO;
 
 import java.sql.Connection;
 import com.moviedb.dao.CollectionDAO;
 import com.moviedb.dao.MovieDAO;
+
+import com.moviedb.dao.MovieDAO;
+
+
 
 /**
  * Entry point. Handles the top-level menu and keeps track of who's logged in.
@@ -23,6 +28,8 @@ public class App {
     private static final UserDAO userDAO = new UserDAO();
     private static final MovieDAO movieDAO = new MovieDAO();
     private static final CollectionDAO collectionDAO = new CollectionDAO();
+    private static final MovieDAO movieDAO = new MovieDAO();
+    private static final WatchDAO watchDAO = new WatchDAO();
 
     public static void main(String[] args) {
         printBanner();
@@ -90,8 +97,8 @@ public class App {
             switch (readInt()) {
                 case 1  -> handleMovieSearch();
                 case 2  -> handleCollections();
-                case 3  -> System.out.println("  [Watch - coming soon]");
-                case 4  -> System.out.println("  [Ratings - coming soon]");
+                case 3  -> handleWatchMovie();
+                case 4  -> handleRateMovie();
                 case 5  -> System.out.println("  [Social - coming soon]");
                 case 0  -> loggedIn = handleLogout();
                 default -> System.out.println("  Not a valid option, try again.");
@@ -353,6 +360,51 @@ public class App {
             System.out.println("  Movie removed from collection.");
         } catch (Exception e) {
             System.out.println("  Error removing movie: " + e.getMessage());
+        }
+    }
+
+    private static void handleRateMovie() {
+        int movieId = readIntPrompt("Movie ID to rate: ");
+        int rating = readIntPrompt("Star rating (1-5): ");
+
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            movieDAO.rateMovie(conn, currentUserId, movieId, rating);
+            System.out.println("  Movie rated.");
+        } catch (Exception e) {
+            System.out.println("  Error rating movie: " + e.getMessage());
+        }
+    }
+
+    private static void handleWatchMovie() {
+        printDivider();
+        System.out.println("  1. Watch a single movie");
+        System.out.println("  2. Play an entire collection");
+        System.out.println("  0. Back");
+        printDivider();
+        System.out.print("  > ");
+
+        switch (readInt()) {
+            case 1 -> {
+                int movieId = readIntPrompt("Movie ID to watch: ");
+                try {
+                    watchDAO.watchMovie(DatabaseConnection.getConnection(), currentUserId, movieId);
+                    System.out.println("  Marked as watched!");
+                } catch (Exception e) {
+                    System.out.println("  Error recording watch: " + e.getMessage());
+                }
+            }
+            case 2 -> {
+                int collectionId = readIntPrompt("Collection ID to play: ");
+                try {
+                    watchDAO.watchCollection(DatabaseConnection.getConnection(), currentUserId, collectionId);
+                    System.out.println("  Entire collection marked as watched!");
+                } catch (Exception e) {
+                    System.out.println("  Error recording collection watch: " + e.getMessage());
+                }
+            }
+            case 0 -> {}
+            default -> System.out.println("  Not a valid option.");
         }
     }
 
