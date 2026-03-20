@@ -88,7 +88,7 @@ public class MovieDAO {
      * @return a list of matching MovieResult objects
      */
     public List<MovieResult> searchByTitle(String title) {
-        return searchMovies(BASE_QUERY + "WHERE m.title ILIKE ?\n", title);
+        return searchMovies(BASE_QUERY + "WHERE m.title ILIKE ?\n" + GROUP_AND_ORDER, "%" + title + "%");
     }
 
     /**
@@ -189,9 +189,9 @@ public class MovieDAO {
                 }
             };
         }
-        results.sort(cheeseburger);
-        return results;
-
+        List<MovieResult> sorted = new ArrayList<>(results);
+        sorted.sort(cheeseburger);
+        return sorted;
     }
 
 
