@@ -3,11 +3,14 @@ package com.moviedb;
 import java.util.Scanner;
 
 import com.moviedb.dao.UserDAO;
+import com.moviedb.dao.WatchDAO;
 
 import java.sql.Connection;
 import com.moviedb.dao.CollectionDAO;
 
 import com.moviedb.dao.MovieDAO;
+
+
 
 /**
  * Entry point. Handles the top-level menu and keeps track of who's logged in.
@@ -23,6 +26,7 @@ public class App {
     private static final UserDAO userDAO = new UserDAO();
     private static final CollectionDAO collectionDAO = new CollectionDAO();
     private static final MovieDAO movieDAO = new MovieDAO();
+    private static final WatchDAO watchDAO = new WatchDAO();
 
     public static void main(String[] args) {
         printBanner();
@@ -90,7 +94,7 @@ public class App {
             switch (readInt()) {
                 case 1  -> System.out.println("  [Movie Search - coming soon]");
                 case 2  -> handleCollections();
-                case 3  -> System.out.println("  [Watch - coming soon]");
+                case 3  -> handleWatchMovie();
                 case 4  -> handleRateMovie();
                 case 5  -> System.out.println("  [Social - coming soon]");
                 case 0  -> loggedIn = handleLogout();
@@ -301,6 +305,18 @@ public class App {
             System.out.println("  Movie rated.");
         } catch (Exception e) {
             System.out.println("  Error rating movie: " + e.getMessage());
+        }
+    }
+
+    private static void handleWatchMovie() {
+        int movieId = readIntPrompt("Movie ID to watch: ");
+
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            watchDAO.watchMovie(conn, currentUserId, movieId);
+            System.out.println("You watched the movie.");
+        } catch (Exception e) {
+            System.out.println("  Error recording watch: " + e.getMessage());
         }
     }
 
