@@ -45,14 +45,16 @@ public class DatabaseConnection {
         int forwardedPort = sshSession.setPortForwardingL(0, "127.0.0.1", DB_PORT);
 
         // Now connect Postgres through the tunnel
-        String url = "jdbc:postgresql://127.0.0.1:" + forwardedPort + "/" + database;
+        String url = "jdbc:postgresql://127.0.0.1:" + forwardedPort + "/" + database + "?preferQueryMode=simple";
         Properties dbProps = new Properties();
         dbProps.put("user", user);
         dbProps.put("password", password);
 
         Class.forName("org.postgresql.Driver");
         connection = DriverManager.getConnection(url, dbProps);
-        
+        connection.createStatement().execute("SET max_parallel_workers_per_gather = 0");
+        connection.createStatement().execute("SET max_parallel_workers = 0");
+        connection.createStatement().execute("SET max_parallel_maintenance_workers = 0");
         System.out.println("  Connected to database.");
         return connection;
     }
