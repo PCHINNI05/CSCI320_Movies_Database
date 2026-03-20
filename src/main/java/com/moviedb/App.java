@@ -95,8 +95,8 @@ public class App {
             switch (readInt()) {
                 case 1  -> handleMovieSearch();
                 case 2  -> handleCollections();
-                case 3  -> System.out.println("  [Watch - coming soon]");
-                case 4  -> System.out.println("  [Ratings - coming soon]");
+                case 3  -> handleWatchMovie();
+                case 4  -> handleRateMovie();
                 case 5  -> handleSocial();
                 case 0  -> loggedIn = handleLogout();
                 default -> System.out.println("  Not a valid option, try again.");
