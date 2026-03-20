@@ -1,11 +1,13 @@
 package com.moviedb;
 
+import java.util.List;
 import java.util.Scanner;
 
 import com.moviedb.dao.UserDAO;
 
 import java.sql.Connection;
 import com.moviedb.dao.CollectionDAO;
+import com.moviedb.dao.MovieDAO;
 
 /**
  * Entry point. Handles the top-level menu and keeps track of who's logged in.
@@ -19,6 +21,7 @@ public class App {
     static final Scanner scanner = new Scanner(System.in);
 
     private static final UserDAO userDAO = new UserDAO();
+    private static final MovieDAO movieDAO = new MovieDAO();
     private static final CollectionDAO collectionDAO = new CollectionDAO();
 
     public static void main(String[] args) {
@@ -85,7 +88,7 @@ public class App {
             System.out.print("  > ");
 
             switch (readInt()) {
-                case 1  -> System.out.println("  [Movie Search - coming soon]");
+                case 1  -> handleMovieSearch();
                 case 2  -> handleCollections();
                 case 3  -> System.out.println("  [Watch - coming soon]");
                 case 4  -> System.out.println("  [Ratings - coming soon]");
@@ -97,6 +100,72 @@ public class App {
     }
 
     // --> Auth stubs (will be replaced when UserDAO is built) <--
+
+    /**
+     * Full movie search flow. Pick a filter, enter a term, and browse results.
+     * Re-sorting is in-memory so we don't hit the DB twice for same query.
+     */
+    private static void handleMovieSearch() {
+        printDivider();
+        System.out.println("  Search movies by:");
+        System.out.println("  Search movies by:");
+        System.out.println("  1. Title");
+        System.out.println("  2. Release Date  (YYYY, YYYY-MM, or YYYY-MM-DD)");
+        System.out.println("  3. Cast Member");
+        System.out.println("  4. Studio");
+        System.out.println("  5. Genre");
+        System.out.println("  0. Back");
+        printDivider();
+
+        System.out.println("  > ");
+
+        int choice = readInt();
+        if (choice == 0) return;
+
+        String term = readLine("Search: ");
+
+        List<MovieDAO.MovieResult> results = switch (choice) {
+            case 1  -> movieDAO.searchByTitle(term);
+            case 2  -> movieDAO.searchByReleaseDate(term);
+            case 3  -> movieDAO.searchByCastMember(term);
+            case 4  -> movieDAO.searchByStudio(term);
+            case 5  -> movieDAO.searchByGenre(term);
+            default -> { System.out.println("  Not a valid option."); yield List.of(); }
+        };
+
+        movieDAO.printResults(results);
+        if (results.isEmpty()) return;
+
+        // Let them re-sort the same results as many times as they want
+        boolean sorting = true;
+        while (sorting) {
+            printDivider();
+            System.out.println("  Re-sort by:   (0 to go back)");
+            System.out.println("  1. Title A->Z      2. Title Z->A");
+            System.out.println("  3. Studio A->Z     4. Studio Z->A");
+            System.out.println("  5. Genre A->Z      6. Genre Z->A");
+            System.out.println("  7. Year (oldest)  8. Year (newest)");
+            printDivider();
+            System.out.print("  > ");
+
+            int sortChoice = readInt();
+            if (sortChoice == 0) { sorting = false; continue; }
+
+            results = switch (sortChoice) {
+                case 1  -> movieDAO.sort(results, "title",  true);
+                case 2  -> movieDAO.sort(results, "title",  false);
+                case 3  -> movieDAO.sort(results, "studio", true);
+                case 4  -> movieDAO.sort(results, "studio", false);
+                case 5  -> movieDAO.sort(results, "genre",  true);
+                case 6  -> movieDAO.sort(results, "genre",  false);
+                case 7  -> movieDAO.sort(results, "year",   true);
+                case 8  -> movieDAO.sort(results, "year",   false);
+                default -> { System.out.println("  Not a valid sort option."); yield results; }
+            };
+
+            if (sortChoice >= 1 && sortChoice <= 8) movieDAO.printResults(results);
+        }
+    }
 
     /**
      * Prompts for credentials and attempts login. On success, stashes the session
