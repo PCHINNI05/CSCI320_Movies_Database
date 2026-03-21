@@ -31,6 +31,13 @@ public class WatchDAO {
 
     // Plays every movie in a collection. Inserts a "watches" row for each one
     public void watchCollection(Connection connect, int userID, int collectionID) throws Exception {
+        // ownership check
+        String check = "SELECT 1 FROM collection WHERE collection_id = ? AND user_id = ?";
+        try (var s = connect.prepareStatement(check)) {
+            s.setInt(1, collectionID); s.setInt(2, userID);
+            if (!s.executeQuery().next()) throw new Exception("Collection not found or not yours.");
+        }
+
         String sql = """
             INSERT INTO watches (user_id, movie_id, start_time, end_time)
             SELECT
