@@ -419,7 +419,6 @@ public class App {
         try {
             Connection conn = DatabaseConnection.getConnection();
             socialDAO.followUser(conn, currentUserId, userEmail);
-            System.out.println("  Now following user with email " + userEmail);
         } catch (Exception e) {
             System.out.println("  Error following user: " + e.getMessage());
         }
@@ -433,7 +432,6 @@ public class App {
         try {
             Connection conn = DatabaseConnection.getConnection();
             socialDAO.unfollowUser(conn, currentUserId, userEmail);
-            System.out.println("  Unfollowed user with email " + userEmail);
         } catch (Exception e) {
             System.out.println("  Error unfollowing user: " + e.getMessage());
         }

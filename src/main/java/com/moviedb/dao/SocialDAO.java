@@ -111,6 +111,7 @@ public class SocialDAO {
             stmt.setInt(1, userId);
             stmt.setInt(2, targetUserId);
             stmt.executeUpdate();
+            System.out.println("  Successfully followed that user.");
         } catch (Exception e) {
             System.err.println("  Couldn't follow user: " + e.getMessage());
         }
@@ -142,6 +143,7 @@ public class SocialDAO {
             stmt.setInt(1, userId);
             stmt.setInt(2, targetUserId);
             stmt.executeUpdate();
+            System.out.println("  Successfully unfollowed that user.");
         } catch (Exception e) {
             System.err.println("  Couldn't unfollow user: " + e.getMessage());
         }

@@ -100,7 +100,9 @@ public class MovieDAO {
      * @return a list of matching MovieResult objects
      */
     public List<MovieResult> searchByReleaseDate(String date) {
-        return searchMovies(BASE_QUERY + "WHERE TO_CHAR(hp.release_date, 'YYYY-MM-DD') LIKE ?\n" + GROUP_AND_ORDER, date +"%");
+        return searchMovies(BASE_QUERY + "GROUP BY m.movie_id, m.title, m.length, m.mpaa_rating\n"
+            + "HAVING TO_CHAR(MIN(hp.release_date), 'YYYY-MM-DD') LIKE ?\n"
+            + "ORDER BY m.title ASC, MIN(hp.release_date) ASC\n", date + "%");
     }
 
     /**

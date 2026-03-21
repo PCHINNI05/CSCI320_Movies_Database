@@ -77,12 +77,16 @@ public class CollectionDAO {
         String sql = """
             INSERT INTO collection_contents (collection_id, movie_id)
             VALUES (?, ?)
+            ON CONFLICT DO NOTHING
             """;
 
         try (var statement = connect.prepareStatement(sql)) {
             statement.setInt(1, collectionID);
             statement.setInt(2, movieID);
-            statement.executeUpdate();
+            int rows = statement.executeUpdate();
+            if (rows == 0) {
+                System.out.println("  That movie is already in the collection.");
+            }
         }
     }
 
