@@ -374,6 +374,7 @@ public class App {
             System.out.println("  2. View My Following");
             System.out.println("  3. Follow a User");
             System.out.println("  4. Unfollow a User");
+            System.out.println("  5. Trending Movies");
             System.out.println("  0. Back");
             printDivider();
             System.out.print("  > ");
@@ -383,6 +384,7 @@ public class App {
                 case 2  -> viewMyFollowing();
                 case 3  -> followUser();
                 case 4  -> unfollowUser();
+                case 5  -> trendingMovies();
                 case 0  -> inSocialMenu = false;
                 default -> System.out.println("  Not a valid option, try again.");
             }
@@ -436,8 +438,35 @@ public class App {
             System.out.println("  Error unfollowing user: " + e.getMessage());
         }
     }
+    /**
+     * Menu to view top 20 trending movies, or top 5 of the month
+     */
+    private  static void trendingMovies() {
+        printDivider();
+        System.out.println("  Trending Movies");
+        printDivider();
+        System.out.println("  1. Find the top 20 most popular movies in the last 90 days");
+        System.out.println("  2. Find the top 20 most popular movies among your followers");
+        System.out.println("  3. Find the top 5 most popular movies released this month");
+        System.out.println("  0. Back");
+        printDivider();
+        System.out.print("  > ");
 
+        int choice = readInt();
+        if (choice == 0) return;
 
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            List<MovieDAO.MovieResult> results = switch (choice) {
+                case 1 -> movieDAO.getTopTrending(conn, "all_time");
+                case 2 -> movieDAO.getTopTrending(conn, "this_month");
+                default -> { System.out.println("  Not a valid option."); yield List.of(); }
+            };
+            movieDAO.printResults(results);
+        } catch (Exception e) {
+            System.out.println("  Error loading trending movies: " + e.getMessage());
+        }
+    }
 
     private static void handleRateMovie() {
         int movieId = readIntPrompt("Movie ID to rate: ");
