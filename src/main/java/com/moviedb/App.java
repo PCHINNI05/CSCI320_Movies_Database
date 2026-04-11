@@ -88,6 +88,7 @@ public class App {
             System.out.println("  3. Watch a Movie");
             System.out.println("  4. Rate a Movie");
             System.out.println("  5. Social (Follow / Unfollow)");
+            System.out.println("  6. Trending Movies");
             System.out.println("  0. Logout");
             printDivider();
             System.out.print("  > ");
@@ -98,6 +99,7 @@ public class App {
                 case 3  -> handleWatchMovie();
                 case 4  -> handleRateMovie();
                 case 5  -> handleSocial();
+                case 6  -> trendingMovies();
                 case 0  -> loggedIn = handleLogout();
                 default -> System.out.println("  Not a valid option, try again.");
             }
@@ -374,7 +376,6 @@ public class App {
             System.out.println("  2. View My Following");
             System.out.println("  3. Follow a User");
             System.out.println("  4. Unfollow a User");
-            System.out.println("  5. Trending Movies");
             System.out.println("  0. Back");
             printDivider();
             System.out.print("  > ");
@@ -384,7 +385,6 @@ public class App {
                 case 2  -> viewMyFollowing();
                 case 3  -> followUser();
                 case 4  -> unfollowUser();
-                case 5  -> trendingMovies();
                 case 0  -> inSocialMenu = false;
                 default -> System.out.println("  Not a valid option, try again.");
             }
@@ -458,8 +458,9 @@ public class App {
         try {
             Connection conn = DatabaseConnection.getConnection();
             List<MovieDAO.MovieResult> results = switch (choice) {
-                case 1 -> movieDAO.getTopTrending(conn, "all_time");
-                case 2 -> movieDAO.getTopTrending(conn, "this_month");
+                case 1 -> movieDAO.getTopTrending(conn, 90, -1);
+                case 2 -> movieDAO.getTopTrending(conn, -1, currentUserId);
+                //case 3 -> movieDAO.getTopReleasedMonth(conn, 5);
                 default -> { System.out.println("  Not a valid option."); yield List.of(); }
             };
             movieDAO.printResults(results);
