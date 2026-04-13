@@ -304,6 +304,7 @@ public class MovieDAO {
      * @param days number of days to look back, or -1 for all time
      * @param currentUserId user id for follower filtering, or -1 for all users
      * @return list of up to 20 MovieResult objects
+     *
      */
     public List<MovieResult> getTopTrending(Connection connect, int days, int currentUserId) {
         List<MovieResult> results = new ArrayList<>();
@@ -402,6 +403,82 @@ public class MovieDAO {
             System.err.println("  Trending search failed: " + e.getMessage());
         }
 
+        System.out.println(results);
+        return results;
+    }
+
+    /**
+     * Returns the top N movies in the current calendar month
+     *
+     * @param connect active database connection
+     * @param numReleases number of movie releases to return
+     * @return list of up to 20 MovieResult objects
+ *
+     */
+    public List<MovieResult> getTopReleasedMonth(Connection connect, int numReleases) {
+        List<MovieResult> results = new ArrayList<>();
+
+        String sql = """
+        SELECT
+            m.movie_id,
+            m.title,
+            m.length,
+            m.mpaa_rating,
+            STRING_AGG(DISTINCT TRIM(e_a.first_name || ' ' || e_a.last_name), ', '
+                       ORDER BY TRIM(e_a.first_name || ' ' || e_a.last_name)) AS cast_members,
+            STRING_AGG(DISTINCT TRIM(e_d.first_name || ' ' || e_d.last_name), ', ') AS directors,
+            STRING_AGG(DISTINCT s.name, ', ')        AS studios,
+            STRING_AGG(DISTINCT g.genre_name, ', ')  AS genres,
+            TO_CHAR(MIN(hp.release_date), 'YYYY-MM-DD') AS release_date,
+            ROUND(AVG(r.star_rating)::numeric, 1)    AS avg_rating
+        FROM movie m
+        LEFT JOIN acts_in     ai  ON m.movie_id = ai.movie_id
+        LEFT JOIN employee    e_a ON ai.employee_id = e_a.employee_id
+        LEFT JOIN directs     d   ON m.movie_id = d.movie_id
+        LEFT JOIN employee    e_d ON d.employee_id = e_d.employee_id
+        LEFT JOIN produces    p   ON m.movie_id = p.movie_id
+        LEFT JOIN studio      s   ON p.studio_id = s.studio_id
+        LEFT JOIN has_genre   hg  ON m.movie_id = hg.movie_id
+        LEFT JOIN genre       g   ON hg.genre_id = g.genre_id
+        LEFT JOIN has_platform hp ON m.movie_id = hp.movie_id
+        LEFT JOIN rates       r   ON m.movie_id = r.movie_id
+        WHERE EXTRACT(YEAR FROM hp.release_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+          AND EXTRACT(MONTH FROM hp.release_date) = EXTRACT(MONTH FROM CURRENT_DATE)
+        GROUP BY m.movie_id, m.title, m.length, m.mpaa_rating
+        ORDER BY AVG(r.star_rating) DESC,
+                 MIN(hp.release_date) ASC,
+                 m.title ASC
+        LIMIT ?
+    """;
+
+        try (var statement = connect.prepareStatement(sql)) {
+            statement.setInt(1, numReleases);
+
+            ResultSet rs = statement.executeQuery();
+
+            while (rs.next()) {
+                double average = rs.getDouble("avg_rating");
+                boolean hasRating = !rs.wasNull();
+
+                results.add(new MovieResult(
+                        rs.getInt("movie_id"),
+                        rs.getString("title"),
+                        rs.getString("cast_members"),
+                        rs.getString("directors"),
+                        rs.getString("studios"),
+                        rs.getString("genres"),
+                        rs.getInt("length"),
+                        rs.getString("mpaa_rating"),
+                        rs.getString("release_date"),
+                        hasRating ? average : 0.0
+                ));
+            }
+
+        } catch (Exception e) {
+            System.err.println("  Monthly releases search failed: " + e.getMessage());
+        }
+
+        System.out.println(results);
         return results;
     }
 
