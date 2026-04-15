@@ -4,20 +4,20 @@
  * DESCRIPTION:
  *   MovieDAO handles all database interactions related to movies.
  *   Provides methods to search for movies by title, release date, cast member, studio, or genre,
- *   sort search results, and display the results. 
- *   Each search returns movie details including title, cast, director, length, MPAA rating, 
+ *   sort search results, and display the results.
+ *   Each search returns movie details including title, cast, director, length, MPAA rating,
  *   release date, and average user rating.
  *
  * AUTHORS:
  *   - Ibtehaz Rafid     (ir9269)
  *   - Samuel Stewart    (ses1251)
+ *   - Praneel Chinni    (pjc8054)
  *
  * COURSE:  CSCI 320 - Principles of Data Management
  * SECTION: 02
  * TERM:    Spring 2026
  * GROUP:   #18
  */
-
 package com.moviedb.dao;
 
 import java.sql.Connection;
@@ -34,19 +34,24 @@ public class MovieDAO {
      * Represents a movie search result.
      */
     public record MovieResult(
-            int    movieId,
+            int movieId,
             String title,
             String cast,
             String directors,
             String studios,
             String genres,
-            int    lengthMinutes,
+            int lengthMinutes,
             String mpaaRating,
-            String releaseDate,   // "YYYY-MM-DD", may be null
-            double avgRating      // 0.0 means no ratings yet
-    ) {}
+            String releaseDate, // "YYYY-MM-DD", may be null
+            double avgRating // 0.0 means no ratings yet
+            ) {
 
-    /** All searches have the same JOIN, with only the WHERE clause differing between search modes */
+    }
+
+    /**
+     * All searches have the same JOIN, with only the WHERE clause differing
+     * between search modes
+     */
     private static final String BASE_QUERY = """
             SELECT
                 m.movie_id,
@@ -73,18 +78,18 @@ public class MovieDAO {
             LEFT JOIN rates       r   ON m.movie_id = r.movie_id
             """;
 
-    /** Default sort after a search: alpha by title, then earliest release date */
+    /**
+     * Default sort after a search: alpha by title, then earliest release date
+     */
     private static final String GROUP_AND_ORDER = """
             GROUP BY m.movie_id, m.title, m.length, m.mpaa_rating
             ORDER BY m.title ASC, MIN(hp.release_date) ASC
             """;
 
-
-
     /**
-     * Adds the appropriate WHERE clause to the base query in order to
-     * search for movies by title (case-insensitive).
-     * 
+     * Adds the appropriate WHERE clause to the base query in order to search
+     * for movies by title (case-insensitive).
+     *
      * @param title the movie title or partial title to search for
      * @return a list of matching MovieResult objects
      */
@@ -93,22 +98,22 @@ public class MovieDAO {
     }
 
     /**
-     * Adds the appropriate WHERE clause to the base query in order to
-     * search for movies by release date (year or full date).
-     * 
+     * Adds the appropriate WHERE clause to the base query in order to search
+     * for movies by release date (year or full date).
+     *
      * @param date date the release date or year prefix
      * @return a list of matching MovieResult objects
      */
     public List<MovieResult> searchByReleaseDate(String date) {
         return searchMovies(BASE_QUERY + "GROUP BY m.movie_id, m.title, m.length, m.mpaa_rating\n"
-            + "HAVING TO_CHAR(MIN(hp.release_date), 'YYYY-MM-DD') LIKE ?\n"
-            + "ORDER BY m.title ASC, MIN(hp.release_date) ASC\n", date + "%");
+                + "HAVING TO_CHAR(MIN(hp.release_date), 'YYYY-MM-DD') LIKE ?\n"
+                + "ORDER BY m.title ASC, MIN(hp.release_date) ASC\n", date + "%");
     }
 
     /**
-     * Adds the appropriate WHERE clause to the base query in order to
-     * search for movies by cast member name (case-insensitive).
-     * 
+     * Adds the appropriate WHERE clause to the base query in order to search
+     * for movies by cast member name (case-insensitive).
+     *
      * @param name the full or partial name of a cast member
      * @return a list of matching MovieResult objects
      */
@@ -117,9 +122,9 @@ public class MovieDAO {
     }
 
     /**
-     * Adds the appropriate WHERE clause to the base query in order to
-     * search for movies by studio (case-insensitive).
-     * 
+     * Adds the appropriate WHERE clause to the base query in order to search
+     * for movies by studio (case-insensitive).
+     *
      * @param studio the studio name or partial name
      * @return a list of matching MovieResult objects
      */
@@ -128,9 +133,9 @@ public class MovieDAO {
     }
 
     /**
-     * Adds the appropriate WHERE clause to the base query in order to
-     * search for movies by genre (case-insensitive).
-     * 
+     * Adds the appropriate WHERE clause to the base query in order to search
+     * for movies by genre (case-insensitive).
+     *
      * @param genre the genre name or partial name
      * @return a list of matching MovieResult objects
      */
@@ -138,14 +143,12 @@ public class MovieDAO {
         return searchMovies(BASE_QUERY + "WHERE g.genre_name ILIKE ?\n" + GROUP_AND_ORDER, "%" + genre + "%");
     }
 
-
-
     /**
      * * Sorts a list of movie results based on the specified field and order.
-     * 
+     *
      * If the field is null or unrecognized the sorting defaults to movie title.
      * Sorting can be set in ascending or descending order.
-     * 
+     *
      * @param results the list of MovieResult obects to sort
      * @param field the field to sort by ("title", "studio", "genre", "year")
      * @param ascending true for ascending order, false for descending order
@@ -188,7 +191,7 @@ public class MovieDAO {
             final Comparator<MovieResult> orig = cheeseburger;
             cheeseburger = new Comparator<MovieResult>() {
                 public int compare(MovieResult a, MovieResult b) {
-                    return -orig.compare(a,b);
+                    return -orig.compare(a, b);
                 }
             };
         }
@@ -197,13 +200,11 @@ public class MovieDAO {
         return sorted;
     }
 
-
     /**
-     * Prints a formatted list of movie search results to the console.
-     * Displays each movie with its title, cast, director, length (runtime),
-     * MPAA rating, and average user rating.
-     * If no results found, a message is shown instead.
-     * 
+     * Prints a formatted list of movie search results to the console. Displays
+     * each movie with its title, cast, director, length (runtime), MPAA rating,
+     * and average user rating. If no results found, a message is shown instead.
+     *
      * @param results the list of MovieResult objects to display
      */
     public void printResults(List<MovieResult> results) {
@@ -221,7 +222,7 @@ public class MovieDAO {
                 year = "N/A";
             }
             String rating;
-            if(r.avgRating() > 0) {
+            if (r.avgRating() > 0) {
                 rating = String.format("%.1f* (user avg)", r.avgRating());
             } else {
                 rating = "no user ratings yet";
@@ -234,18 +235,18 @@ public class MovieDAO {
         }
     }
 
-    
     /**
      * Executes a movie search and returns the results.
-     * 
-     * This method prepares a SQL query, inserts the search parameter,
-     * executes the query, and converts each row od the result set into
-     * a @MovieResult object.
-     * 
-     * @param sql the query to execute (must contain a single param placeholder '?')
+     *
+     * This method prepares a SQL query, inserts the search parameter, executes
+     * the query, and converts each row od the result set into a @MovieResult
+     * object.
+     *
+     * @param sql the query to execute (must contain a single param placeholder
+     * '?')
      * @param searchFor the value to bind to the query's parameter
-     * @return a list of @MovieResult objects matching the search criteria
-     *         empty list if no results found/an error occured.
+     * @return a list of @MovieResult objects matching the search criteria empty
+     * list if no results found/an error occured.
      */
     private List<MovieResult> searchMovies(String sql, String searchFor) {
         List<MovieResult> result = new ArrayList<>();
@@ -256,16 +257,16 @@ public class MovieDAO {
                 double average = rs.getDouble("avg_rating");
                 boolean hasRating = !rs.wasNull();
                 result.add(new MovieResult(
-                    rs.getInt("movie_id"),
-                    rs.getString("title"),
-                    rs.getString("cast_members"),
-                    rs.getString("directors"),
-                    rs.getString("studios"),
-                    rs.getString("genres"),
-                    rs.getInt("length"),
-                    rs.getString("mpaa_rating"),
-                    rs.getString("release_date"),
-                    hasRating ? average: 0.0));
+                        rs.getInt("movie_id"),
+                        rs.getString("title"),
+                        rs.getString("cast_members"),
+                        rs.getString("directors"),
+                        rs.getString("studios"),
+                        rs.getString("genres"),
+                        rs.getInt("length"),
+                        rs.getString("mpaa_rating"),
+                        rs.getString("release_date"),
+                        hasRating ? average : 0.0));
             }
         } catch (Exception e) {
             System.err.println("  Search failed: " + e.getMessage());
@@ -297,7 +298,193 @@ public class MovieDAO {
     }
 
     /**
+     * Returns the top 20 trending movies based on watch activity.
+     *
+     * @param connect active database connection
+     * @param days number of days to look back, or -1 for all time
+     * @param currentUserId user id for follower filtering, or -1 for all users
+     * @return list of up to 20 MovieResult objects
+     *
+     */
+    public List<MovieResult> getTopTrending(Connection connect, int days, int currentUserId) {
+        List<MovieResult> results = new ArrayList<>();
+
+        StringBuilder sql = new StringBuilder("""
+        SELECT
+            m.movie_id,
+            m.title,
+            m.length,
+            m.mpaa_rating,
+            STRING_AGG(DISTINCT TRIM(e_a.first_name || ' ' || e_a.last_name), ', '
+                       ORDER BY TRIM(e_a.first_name || ' ' || e_a.last_name)) AS cast_members,
+            STRING_AGG(DISTINCT TRIM(e_d.first_name || ' ' || e_d.last_name), ', ') AS directors,
+            STRING_AGG(DISTINCT s.name, ', ')        AS studios,
+            STRING_AGG(DISTINCT g.genre_name, ', ')  AS genres,
+            TO_CHAR(MIN(hp.release_date), 'YYYY-MM-DD') AS release_date,
+            ROUND(AVG(r.star_rating)::numeric, 1)    AS avg_rating
+        FROM movie m
+        LEFT JOIN acts_in     ai  ON m.movie_id = ai.movie_id
+        LEFT JOIN employee    e_a ON ai.employee_id = e_a.employee_id
+        LEFT JOIN directs     d   ON m.movie_id = d.movie_id
+        LEFT JOIN employee    e_d ON d.employee_id = e_d.employee_id
+        LEFT JOIN produces    p   ON m.movie_id = p.movie_id
+        LEFT JOIN studio      s   ON p.studio_id = s.studio_id
+        LEFT JOIN has_genre   hg  ON m.movie_id = hg.movie_id
+        LEFT JOIN genre       g   ON hg.genre_id = g.genre_id
+        LEFT JOIN has_platform hp ON m.movie_id = hp.movie_id
+        LEFT JOIN rates       r   ON m.movie_id = r.movie_id
+        JOIN watches          w   ON m.movie_id = w.movie_id
+    """);
+
+        List<Object> params = new ArrayList<>();
+        List<String> conditions = new ArrayList<>();
+
+        // Time filter
+        if (days > 0) {
+            conditions.add("w.start_time >= CURRENT_DATE - (? * INTERVAL '1 day')");
+            params.add(days);
+        }
+
+        // Follower filter
+        if (currentUserId > 0) {
+            conditions.add("""
+            w.user_id IN (
+                SELECT f.followee_id
+                FROM follows f
+                WHERE f.follower_id = ?
+            )
+        """);
+            params.add(currentUserId);
+        }
+
+        // Apply WHERE if needed
+        if (!conditions.isEmpty()) {
+            sql.append(" WHERE ");
+            sql.append(String.join(" AND ", conditions));
+        }
+
+        // Grouping + sorting
+        sql.append("""
+        GROUP BY m.movie_id, m.title, m.length, m.mpaa_rating
+        ORDER BY COUNT(DISTINCT (w.user_id, w.movie_id, w.start_time)) DESC,
+                 AVG(r.star_rating) DESC,
+                 m.title ASC
+        LIMIT 20
+    """);
+
+        try (var statement = connect.prepareStatement(sql.toString())) {
+
+            // Bind parameters dynamically
+            for (int i = 0; i < params.size(); i++) {
+                statement.setObject(i + 1, params.get(i));
+            }
+
+            ResultSet rs = statement.executeQuery();
+
+            while (rs.next()) {
+                double average = rs.getDouble("avg_rating");
+                boolean hasRating = !rs.wasNull();
+
+                results.add(new MovieResult(
+                        rs.getInt("movie_id"),
+                        rs.getString("title"),
+                        rs.getString("cast_members"),
+                        rs.getString("directors"),
+                        rs.getString("studios"),
+                        rs.getString("genres"),
+                        rs.getInt("length"),
+                        rs.getString("mpaa_rating"),
+                        rs.getString("release_date"),
+                        hasRating ? average : 0.0
+                ));
+            }
+
+        } catch (Exception e) {
+            System.err.println("  Trending search failed: " + e.getMessage());
+        }
+
+        printResults(results);
+        return results;
+    }
+
+    /**
+     * Returns the top N movies in the current calendar month
+     *
+     * @param connect active database connection
+     * @param numReleases number of movie releases to return
+     * @return list of up to 20 MovieResult objects
+ *
+     */
+    public List<MovieResult> getTopReleasedMonth(Connection connect, int numReleases) {
+        List<MovieResult> results = new ArrayList<>();
+
+        String sql = """
+        SELECT
+            m.movie_id,
+            m.title,
+            m.length,
+            m.mpaa_rating,
+            STRING_AGG(DISTINCT TRIM(e_a.first_name || ' ' || e_a.last_name), ', '
+                       ORDER BY TRIM(e_a.first_name || ' ' || e_a.last_name)) AS cast_members,
+            STRING_AGG(DISTINCT TRIM(e_d.first_name || ' ' || e_d.last_name), ', ') AS directors,
+            STRING_AGG(DISTINCT s.name, ', ')        AS studios,
+            STRING_AGG(DISTINCT g.genre_name, ', ')  AS genres,
+            TO_CHAR(MIN(hp.release_date), 'YYYY-MM-DD') AS release_date,
+            ROUND(AVG(r.star_rating)::numeric, 1)    AS avg_rating
+        FROM movie m
+        LEFT JOIN acts_in     ai  ON m.movie_id = ai.movie_id
+        LEFT JOIN employee    e_a ON ai.employee_id = e_a.employee_id
+        LEFT JOIN directs     d   ON m.movie_id = d.movie_id
+        LEFT JOIN employee    e_d ON d.employee_id = e_d.employee_id
+        LEFT JOIN produces    p   ON m.movie_id = p.movie_id
+        LEFT JOIN studio      s   ON p.studio_id = s.studio_id
+        LEFT JOIN has_genre   hg  ON m.movie_id = hg.movie_id
+        LEFT JOIN genre       g   ON hg.genre_id = g.genre_id
+        LEFT JOIN has_platform hp ON m.movie_id = hp.movie_id
+        LEFT JOIN rates       r   ON m.movie_id = r.movie_id
+        WHERE EXTRACT(YEAR FROM hp.release_date) = EXTRACT(YEAR FROM CURRENT_DATE)
+          AND EXTRACT(MONTH FROM hp.release_date) = EXTRACT(MONTH FROM CURRENT_DATE)
+        GROUP BY m.movie_id, m.title, m.length, m.mpaa_rating
+        ORDER BY AVG(r.star_rating) DESC,
+                 MIN(hp.release_date) ASC,
+                 m.title ASC
+        LIMIT ?
+    """;
+
+        try (var statement = connect.prepareStatement(sql)) {
+            statement.setInt(1, numReleases);
+
+            ResultSet rs = statement.executeQuery();
+
+            while (rs.next()) {
+                double average = rs.getDouble("avg_rating");
+                boolean hasRating = !rs.wasNull();
+
+                results.add(new MovieResult(
+                        rs.getInt("movie_id"),
+                        rs.getString("title"),
+                        rs.getString("cast_members"),
+                        rs.getString("directors"),
+                        rs.getString("studios"),
+                        rs.getString("genres"),
+                        rs.getInt("length"),
+                        rs.getString("mpaa_rating"),
+                        rs.getString("release_date"),
+                        hasRating ? average : 0.0
+                ));
+            }
+
+        } catch (Exception e) {
+            System.err.println("  Monthly releases search failed: " + e.getMessage());
+        }
+
+        printResults(results);
+        return results;
+    }
+
+    /**
      * Helper function to return a lowercase version of the string.
+     *
      * @param s the input string
      * @return lowercase version of the string, or "zzz" if null
      */
@@ -306,8 +493,9 @@ public class MovieDAO {
     }
 
     /**
-     * Helper function to check if a string is null
-     * or blank and returns "N/A" if so.
+     * Helper function to check if a string is null or blank and returns "N/A"
+     * if so.
+     *
      * @param s the input string
      * @return the original string if not null/blank, else "N/A"
      */

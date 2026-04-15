@@ -17,8 +17,9 @@ import com.moviedb.dao.MovieDAO;
  * All feature logic lives in the DAOs, this file just drives the UI.
  */
 public class App {
+
     // The logged-in user's ID lives here for the session. -1 means nobody's logged in.
-    public static int    currentUserId   = -1;
+    public static int currentUserId = -1;
     public static String currentUsername = null;
 
     static final Scanner scanner = new Scanner(System.in);
@@ -51,7 +52,6 @@ public class App {
     }
 
     // --> Menus <--
-
     /**
      * The pre-login menu. Returns false when the user decides to exit.
      */
@@ -64,18 +64,23 @@ public class App {
         System.out.print("  > ");
 
         switch (readInt()) {
-            case 1  -> handleLogin();
-            case 2  -> handleRegister();
-            case 0  -> { return false; }
-            default -> System.out.println("  Not a valid option, try again.");
+            case 1 ->
+                handleLogin();
+            case 2 ->
+                handleRegister();
+            case 0 -> {
+                return false;
+            }
+            default ->
+                System.out.println("  Not a valid option, try again.");
         }
 
         return true;
     }
 
     /**
-     * The main app menu --> shown after a user is logged in.
-     * Loops until the user logs out.
+     * The main app menu --> shown after a user is logged in. Loops until the
+     * user logs out.
      */
     private static void showMainMenu() {
         boolean loggedIn = true;
@@ -88,24 +93,33 @@ public class App {
             System.out.println("  3. Watch a Movie");
             System.out.println("  4. Rate a Movie");
             System.out.println("  5. Social (Follow / Unfollow)");
+            System.out.println("  6. Trending Movies");
             System.out.println("  0. Logout");
             printDivider();
             System.out.print("  > ");
 
             switch (readInt()) {
-                case 1  -> handleMovieSearch();
-                case 2  -> handleCollections();
-                case 3  -> handleWatchMovie();
-                case 4  -> handleRateMovie();
-                case 5  -> handleSocial();
-                case 0  -> loggedIn = handleLogout();
-                default -> System.out.println("  Not a valid option, try again.");
+                case 1 ->
+                    handleMovieSearch();
+                case 2 ->
+                    handleCollections();
+                case 3 ->
+                    handleWatchMovie();
+                case 4 ->
+                    handleRateMovie();
+                case 5 ->
+                    handleSocial();
+                case 6 ->
+                    trendingMovies();
+                case 0 ->
+                    loggedIn = handleLogout();
+                default ->
+                    System.out.println("  Not a valid option, try again.");
             }
         }
     }
 
     // --> Auth stubs (will be replaced when UserDAO is built) <--
-
     /**
      * Full movie search flow. Pick a filter, enter a term, and browse results.
      * Re-sorting is in-memory so we don't hit the DB twice for same query.
@@ -124,21 +138,33 @@ public class App {
         System.out.print("  > ");
 
         int choice = readInt();
-        if (choice == 0) return;
+        if (choice == 0) {
+            return;
+        }
 
         String term = readLine("Search: ");
 
         List<MovieDAO.MovieResult> results = switch (choice) {
-            case 1  -> movieDAO.searchByTitle(term);
-            case 2  -> movieDAO.searchByReleaseDate(term);
-            case 3  -> movieDAO.searchByCastMember(term);
-            case 4  -> movieDAO.searchByStudio(term);
-            case 5  -> movieDAO.searchByGenre(term);
-            default -> { System.out.println("  Not a valid option."); yield List.of(); }
+            case 1 ->
+                movieDAO.searchByTitle(term);
+            case 2 ->
+                movieDAO.searchByReleaseDate(term);
+            case 3 ->
+                movieDAO.searchByCastMember(term);
+            case 4 ->
+                movieDAO.searchByStudio(term);
+            case 5 ->
+                movieDAO.searchByGenre(term);
+            default -> {
+                System.out.println("  Not a valid option.");
+                yield List.of();
+            }
         };
 
         movieDAO.printResults(results);
-        if (results.isEmpty()) return;
+        if (results.isEmpty()) {
+            return;
+        }
 
         // Let them re-sort the same results as many times as they want
         boolean sorting = true;
@@ -153,27 +179,44 @@ public class App {
             System.out.print("  > ");
 
             int sortChoice = readInt();
-            if (sortChoice == 0) { sorting = false; continue; }
+            if (sortChoice == 0) {
+                sorting = false;
+                continue;
+            }
 
             results = switch (sortChoice) {
-                case 1  -> movieDAO.sort(results, "title",  true);
-                case 2  -> movieDAO.sort(results, "title",  false);
-                case 3  -> movieDAO.sort(results, "studio", true);
-                case 4  -> movieDAO.sort(results, "studio", false);
-                case 5  -> movieDAO.sort(results, "genre",  true);
-                case 6  -> movieDAO.sort(results, "genre",  false);
-                case 7  -> movieDAO.sort(results, "year",   true);
-                case 8  -> movieDAO.sort(results, "year",   false);
-                default -> { System.out.println("  Not a valid sort option."); yield results; }
+                case 1 ->
+                    movieDAO.sort(results, "title", true);
+                case 2 ->
+                    movieDAO.sort(results, "title", false);
+                case 3 ->
+                    movieDAO.sort(results, "studio", true);
+                case 4 ->
+                    movieDAO.sort(results, "studio", false);
+                case 5 ->
+                    movieDAO.sort(results, "genre", true);
+                case 6 ->
+                    movieDAO.sort(results, "genre", false);
+                case 7 ->
+                    movieDAO.sort(results, "year", true);
+                case 8 ->
+                    movieDAO.sort(results, "year", false);
+                default -> {
+                    System.out.println("  Not a valid sort option.");
+                    yield results;
+                }
             };
 
-            if (sortChoice >= 1 && sortChoice <= 8) movieDAO.printResults(results);
+            if (sortChoice >= 1 && sortChoice <= 8) {
+                movieDAO.printResults(results);
+            }
         }
     }
 
     /**
-     * Prompts for credentials and attempts login. On success, stashes the session
-     * state and drops the user into the main menu. Error messages come from the DAO.
+     * Prompts for credentials and attempts login. On success, stashes the
+     * session state and drops the user into the main menu. Error messages come
+     * from the DAO.
      */
     private static void handleLogin() {
         System.out.println();
@@ -181,9 +224,11 @@ public class App {
         String password = readLine("Password: ");
 
         int userId = userDAO.login(username, password);
-        if (userId == -1) return;
+        if (userId == -1) {
+            return;
+        }
 
-        currentUserId   = userId;
+        currentUserId = userId;
         currentUsername = username;
 
         System.out.printf("%n  Welcome back, %s!%n", userDAO.getFullName(userId));
@@ -192,21 +237,23 @@ public class App {
 
     /**
      * Walks the user through account creation, then auto-logs them in so they
-     * don't have to immediately turn around and log in again. Duplicate username
-     * and email checks happen inside the DAO.
+     * don't have to immediately turn around and log in again. Duplicate
+     * username and email checks happen inside the DAO.
      */
     private static void handleRegister() {
         System.out.println();
         String firstName = readLine("First Name:  ");
-        String lastName  = readLine("Last Name:   ");
-        String username  = readLine("Username:    ");
-        String email     = readLine("Email:       ");
-        String password  = readLine("Password:    ");
+        String lastName = readLine("Last Name:   ");
+        String username = readLine("Username:    ");
+        String email = readLine("Email:       ");
+        String password = readLine("Password:    ");
 
         int userId = userDAO.register(firstName, lastName, username, email, password);
-        if (userId == -1) return;
+        if (userId == -1) {
+            return;
+        }
 
-        currentUserId   = userId;
+        currentUserId = userId;
         currentUsername = username;
 
         System.out.printf("%n  Account created! Welcome, %s!%n", firstName);
@@ -214,12 +261,12 @@ public class App {
     }
 
     /**
-     * Clears the session and goes back to the "landing menu".
-     * Returns false to break the main menu loop.
+     * Clears the session and goes back to the "landing menu". Returns false to
+     * break the main menu loop.
      */
     private static boolean handleLogout() {
         System.out.printf("  See you later, %s!%n", currentUsername);
-        currentUserId   = -1;
+        currentUserId = -1;
         currentUsername = null;
         return false;
     }
@@ -243,21 +290,31 @@ public class App {
             System.out.print("  > ");
 
             switch (readInt()) {
-                case 1  -> viewMyCollections();
-                case 2  -> createCollection();
-                case 3  -> renameCollection();
-                case 4  -> deleteCollection();
-                case 5  -> viewCollectionDetails();
-                case 6  -> addMovieToCollection();
-                case 7  -> removeMovieFromCollection();
-                case 0  -> inCollectionsMenu = false;
-                default -> System.out.println("  Not a valid option, try again.");
+                case 1 ->
+                    viewMyCollections();
+                case 2 ->
+                    createCollection();
+                case 3 ->
+                    renameCollection();
+                case 4 ->
+                    deleteCollection();
+                case 5 ->
+                    viewCollectionDetails();
+                case 6 ->
+                    addMovieToCollection();
+                case 7 ->
+                    removeMovieFromCollection();
+                case 0 ->
+                    inCollectionsMenu = false;
+                default ->
+                    System.out.println("  Not a valid option, try again.");
             }
         }
     }
 
     /**
-     * Fetches and displays all collections belonging to the logged-in user, along with their movie counts and total runtimes.  
+     * Fetches and displays all collections belonging to the logged-in user,
+     * along with their movie counts and total runtimes.
      */
     private static void viewMyCollections() {
         try {
@@ -269,7 +326,8 @@ public class App {
     }
 
     /**
-     * Prompts for a collection name and creates a new collection owned by the logged-in user.
+     * Prompts for a collection name and creates a new collection owned by the
+     * logged-in user.
      */
     private static void createCollection() {
         String collectionName = readLine("Collection Name: ");
@@ -284,7 +342,8 @@ public class App {
     }
 
     /**
-     * Prompts for a collection ID and new name, then renames the collection if it belongs to the logged-in user.
+     * Prompts for a collection ID and new name, then renames the collection if
+     * it belongs to the logged-in user.
      */
     private static void renameCollection() {
         int collectionId = readIntPrompt("Collection ID to rename: ");
@@ -300,7 +359,9 @@ public class App {
     }
 
     /**
-     * Prompts for a collection ID and deletes the collection if it belongs to the logged-in user. Also deletes all movies inside the collection via cascading.
+     * Prompts for a collection ID and deletes the collection if it belongs to
+     * the logged-in user. Also deletes all movies inside the collection via
+     * cascading.
      */
     private static void deleteCollection() {
         int collectionId = readIntPrompt("Collection ID to delete: ");
@@ -315,7 +376,9 @@ public class App {
     }
 
     /**
-     * Prompts for a collection ID and displays all movies inside that collection, along with their details. Only works if the collection belongs to the logged-in user.
+     * Prompts for a collection ID and displays all movies inside that
+     * collection, along with their details. Only works if the collection
+     * belongs to the logged-in user.
      */
     private static void viewCollectionDetails() {
         int collectionId = readIntPrompt("Collection ID: ");
@@ -329,7 +392,10 @@ public class App {
     }
 
     /**
-     *  Prompts for a collection ID and movie ID, then adds that movie to the collection if it belongs to the logged-in user. Movie ID must be valid, but there's no check to prevent duplicates (a movie can be added multiple times).
+     * Prompts for a collection ID and movie ID, then adds that movie to the
+     * collection if it belongs to the logged-in user. Movie ID must be valid,
+     * but there's no check to prevent duplicates (a movie can be added multiple
+     * times).
      */
     private static void addMovieToCollection() {
         int collectionId = readIntPrompt("Collection ID: ");
@@ -345,7 +411,9 @@ public class App {
     }
 
     /**
-     * Prompts for a collection ID and movie ID, then removes that movie from the collection if it belongs to the logged-in user. If the movie appears multiple times, only one instance will be removed.
+     * Prompts for a collection ID and movie ID, then removes that movie from
+     * the collection if it belongs to the logged-in user. If the movie appears
+     * multiple times, only one instance will be removed.
      */
     private static void removeMovieFromCollection() {
         int collectionId = readIntPrompt("Collection ID: ");
@@ -361,7 +429,8 @@ public class App {
     }
 
     /**
-     * The "Social" menu, where you can follow and unfollow other users, and view your followers / following lists.
+     * The "Social" menu, where you can follow and unfollow other users, and
+     * view your followers / following lists.
      */
     private static void handleSocial() {
         boolean inSocialMenu = true;
@@ -379,17 +448,19 @@ public class App {
             System.out.print("  > ");
 
             switch (readInt()) {
-                case 1  -> viewMyFollowers();
-                case 2  -> viewMyFollowing();
-                case 3  -> followUser();
-                case 4  -> unfollowUser();
-                case 0  -> inSocialMenu = false;
+                case 1 -> viewMyFollowers();
+                case 2 -> viewMyFollowing();
+                case 3 -> followUser();
+                case 4 -> unfollowUser();
+                case 0 -> inSocialMenu = false;
                 default -> System.out.println("  Not a valid option, try again.");
             }
         }
     }
+
     /**
-     * Fetches and displays all followers of the logged-in user, along with their usernames and full names.
+     * Fetches and displays all followers of the logged-in user, along with
+     * their usernames and full names.
      */
     private static void viewMyFollowers() {
         try {
@@ -399,8 +470,10 @@ public class App {
             System.out.println("  Error loading collection details: " + e.getMessage());
         }
     }
+
     /**
-     * Fetches and displays all users that the logged-in user is following, along with their usernames and full names.
+     * Fetches and displays all users that the logged-in user is following,
+     * along with their usernames and full names.
      */
     private static void viewMyFollowing() {
         try {
@@ -410,6 +483,7 @@ public class App {
             System.out.println("  Error loading collection details: " + e.getMessage());
         }
     }
+
     /**
      * Follows a user by their username.
      */
@@ -423,9 +497,10 @@ public class App {
             System.out.println("  Error following user: " + e.getMessage());
         }
     }
+
     /**
-    * Unfollows a user by their username.
-    */
+     * Unfollows a user by their username.
+     */
     private static void unfollowUser() {
         String userEmail = readLine("User email to unfollow: ");
 
@@ -437,7 +512,38 @@ public class App {
         }
     }
 
+    /**
+     * Menu to view top 20 trending movies, or top 5 of the month
+     */
+    private static void trendingMovies() {
+        boolean inTredingMenu = true;
 
+        while (inTredingMenu) {
+            printDivider();
+            System.out.println("  Trending Movies");
+            printDivider();
+            System.out.println("  1. Find the top 20 most popular movies in the last 90 days");
+            System.out.println("  2. Find the top 20 most popular movies among your followers");
+            System.out.println("  3. Find the top 5 most popular movies released this month");
+            System.out.println("  0. Back");
+            printDivider();
+            System.out.print("  > ");
+            
+            try {
+                Connection conn = DatabaseConnection.getConnection();
+                switch (readInt()) {
+                    case 1 -> movieDAO.getTopTrending(conn, 90, -1);
+                    case 2 -> movieDAO.getTopTrending(conn, -1, currentUserId);
+                    case 3 -> movieDAO.getTopReleasedMonth(conn, 5);
+                    case 0 -> inTredingMenu = false;
+                    default -> System.out.println("  Not a valid option.");
+                    
+                };
+            } catch (Exception e) {
+                System.out.println("  Error loading trending movies: " + e.getMessage());
+            }
+        }
+    }
 
     private static void handleRateMovie() {
         int movieId = readIntPrompt("Movie ID to rate: ");
@@ -479,8 +585,10 @@ public class App {
                     System.out.println("  Error recording collection watch: " + e.getMessage());
                 }
             }
-            case 0 -> {}
-            default -> System.out.println("  Not a valid option.");
+            case 0 -> {
+            }
+            default ->
+                System.out.println("  Not a valid option.");
         }
     }
 
@@ -497,7 +605,6 @@ public class App {
     }
 
     // --> UI Helpers <--
-
     private static void printBanner() {
         System.out.println();
         System.out.println("  ╔══════════════════════════════════╗");
@@ -514,8 +621,8 @@ public class App {
     }
 
     /**
-     * Reads an int from stdin. Returns -1 if the input isn't a number
-     * so the menu's default case handles it correctly.
+     * Reads an int from stdin. Returns -1 if the input isn't a number so the
+     * menu's default case handles it correctly.
      */
     public static int readInt() {
         try {
@@ -528,7 +635,9 @@ public class App {
         }
     }
 
-    /** Reads a non-empty string, re-prompting if the user just hits Enter. */
+    /**
+     * Reads a non-empty string, re-prompting if the user just hits Enter.
+     */
     public static String readLine(String prompt) {
         String input;
         do {
@@ -538,7 +647,9 @@ public class App {
         return input;
     }
 
-    /** Reads a string that's allowed to be empty (optional fields). */
+    /**
+     * Reads a string that's allowed to be empty (optional fields).
+     */
     public static String readOptionalLine(String prompt) {
         System.out.println("  " + prompt);
         return scanner.nextLine().trim();
