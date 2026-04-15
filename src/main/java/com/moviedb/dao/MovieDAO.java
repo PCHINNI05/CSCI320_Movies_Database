@@ -403,7 +403,7 @@ public class MovieDAO {
             System.err.println("  Trending search failed: " + e.getMessage());
         }
 
-        System.out.println(results);
+        printResults(results);
         return results;
     }
 
@@ -478,7 +478,7 @@ public class MovieDAO {
             System.err.println("  Monthly releases search failed: " + e.getMessage());
         }
 
-        System.out.println(results);
+        printResults(results);
         return results;
     }
 
