@@ -122,6 +122,74 @@ public class UserDAO {
         return "Unknown";
     }
 
+    /** Looks up a user_id by email. Returns -1 if not found. */
+    public int getUserIdByEmail(String email) {
+        String sql = "SELECT user_id FROM users WHERE email = ?";
+
+        try (PreparedStatement stmt = DatabaseConnection.getConnection().prepareStatement(sql)) {
+            stmt.setString(1, email);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) return rs.getInt("user_id");
+        } catch (Exception e) {
+            System.err.println("  Couldn't look up user by email: " + e.getMessage());
+        }
+
+        return -1;
+    }
+
+    /** Looks up a user_id by username. Returns -1 if not found. */
+    public int getUserIdByUsername(String username) {
+        String sql = "SELECT user_id FROM users WHERE username = ?";
+
+        try (PreparedStatement stmt = DatabaseConnection.getConnection().prepareStatement(sql)) {
+            stmt.setString(1, username);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) return rs.getInt("user_id");
+        } catch (Exception e) {
+            System.err.println("  Couldn't look up user by username: " + e.getMessage());
+        }
+        
+        return -1;
+    }
+
+    /**
+     * Displays a user's profile: name, collection count, follower/following counts.
+     * Top 10 movies are fetched separately via MovieDAO and printed after.
+     */
+    public void showProfile(int userId) {
+        String sql = """
+                SELECT
+                    u.username,
+                    u.first_name,
+                    u.last_name,
+                    (SELECT COUNT(*) FROM collection  WHERE user_id    = u.user_id) AS collection_count,
+                    (SELECT COUNT(*) FROM follows      WHERE followee_id = u.user_id) AS follower_count,
+                    (SELECT COUNT(*) FROM follows      WHERE follower_id = u.user_id) AS following_count
+                FROM users u
+                WHERE u.user_id = ?
+                """;
+
+        try (PreparedStatement stmt = DatabaseConnection.getConnection().prepareStatement(sql)) {
+            stmt.setInt(1, userId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                System.out.println();
+                System.out.printf("  %s %s (@%s)%n",
+                        rs.getString("first_name"),
+                        rs.getString("last_name"),
+                        rs.getString("username"));
+                System.out.println("  ----------------------------------------");
+                System.out.printf("  Collections:  %d%n", rs.getInt("collection_count"));
+                System.out.printf("  Followers:    %d%n", rs.getInt("follower_count"));
+                System.out.printf("  Following:    %d%n", rs.getInt("following_count"));
+            } else {
+                System.out.println("  User not found.");
+            }
+        } catch (Exception e) {
+            System.err.println("  Couldn't load profile: " + e.getMessage());
+        }
+    }
+
     // --- private helpers ---
 
     private boolean existsByUsername(String username) {
