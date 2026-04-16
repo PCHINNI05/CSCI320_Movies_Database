@@ -1,16 +1,14 @@
 package com.moviedb;
 
+import java.sql.Connection;
 import java.util.List;
 import java.util.Scanner;
 
+import com.moviedb.dao.CollectionDAO;
+import com.moviedb.dao.MovieDAO;
+import com.moviedb.dao.SocialDAO;
 import com.moviedb.dao.UserDAO;
 import com.moviedb.dao.WatchDAO;
-
-import java.sql.Connection;
-
-import com.moviedb.dao.CollectionDAO;
-import com.moviedb.dao.SocialDAO;
-import com.moviedb.dao.MovieDAO;
 
 /**
  * Entry point. Handles the top-level menu and keeps track of who's logged in.
@@ -95,6 +93,7 @@ public class App {
             System.out.println("  5. Social (Follow / Unfollow)");
             System.out.println("  6. Trending Movies");
             System.out.println("  7. User Profiles");
+            System.out.println("  8. Tailored Movie Recommendations");
             System.out.println("  0. Logout");
             printDivider();
             System.out.print("  > ");
@@ -114,6 +113,8 @@ public class App {
                     trendingMovies();
                 case 7 -> 
                     handleProfile();
+                case 8 ->
+                    handleRecommendations();
                 case 0 ->
                     loggedIn = handleLogout();
                 default ->
@@ -658,6 +659,15 @@ public class App {
             }
             default ->
                 System.out.println("  Not a valid option.");
+        }
+    }
+
+    private static void handleRecommendations() {
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            movieDAO.recommendMovies(conn, currentUserId);
+        } catch (Exception e) {
+            System.out.println("  Error loading recommendations: " + e.getMessage());
         }
     }
 
