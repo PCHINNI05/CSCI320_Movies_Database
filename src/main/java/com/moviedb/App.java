@@ -94,6 +94,7 @@ public class App {
             System.out.println("  4. Rate a Movie");
             System.out.println("  5. Social (Follow / Unfollow)");
             System.out.println("  6. Trending Movies");
+            System.out.println("  7. User Profiles");
             System.out.println("  0. Logout");
             printDivider();
             System.out.print("  > ");
@@ -111,6 +112,8 @@ public class App {
                     handleSocial();
                 case 6 ->
                     trendingMovies();
+                case 7 -> 
+                    handleProfile();
                 case 0 ->
                     loggedIn = handleLogout();
                 default ->
@@ -542,6 +545,72 @@ public class App {
             } catch (Exception e) {
                 System.out.println("  Error loading trending movies: " + e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Profile menu: view your own profile or look up another user by username or email.
+     */
+    private static void handleProfile() {
+        printDivider();
+        System.out.println("  User Profiles");
+        printDivider();
+        System.out.println("  1. View My Profile");
+        System.out.println("  2. View Another User's Profile");
+        System.out.println("  0. Back");
+        printDivider();
+        System.out.print("  > ");
+
+        switch (readInt()) {
+            case 1 -> displayProfile(currentUserId);
+            case 2 -> viewOtherProfile();
+            case 0 -> {}
+            default -> System.out.println("  Not a valid option.");
+        }
+    }
+
+    /**
+     * Prompts for a username or email and displays that user's profile.
+     */
+    private static void viewOtherProfile() {
+        printDivider();
+        System.out.println("  Look up user by:");
+        System.out.println("  1. Username");
+        System.out.println("  2. Email");
+        System.out.println("  0. Back");
+        printDivider();
+        System.out.print("  > ");
+
+        int choice = readInt();
+        if (choice == 0) return;
+
+        int targetId = switch (choice) {
+            case 1 -> userDAO.getUserIdByUsername(readLine("Username: "));
+            case 2 -> userDAO.getUserIdByEmail(readLine("Email: "));
+            default -> {
+                System.out.println("  Not a valid option.");
+                yield -1;
+            }
+        };
+
+        if (targetId == -1) {
+            System.out.println("  No user found.");
+            return;
+        }
+
+        displayProfile(targetId);
+    }
+
+    /**
+     * Shared profile display: stats header then top 10 movies.
+     */
+    private static void displayProfile(int userId) {
+        userDAO.showProfile(userId);
+        try {
+            Connection conn = DatabaseConnection.getConnection();
+            movieDAO.getTopMoviesForUser(conn, userId);
+        } catch (Exception e) {
+            System.out.println("  Error loading top movies: " + e.getMessage());
         }
     }
 
