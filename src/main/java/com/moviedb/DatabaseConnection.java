@@ -1,17 +1,37 @@
+/**
+ * FILE: DatabaseConnection.java
+ *
+ * DESCRIPTION:
+ *   Manages the SSH tunnel and singleton JDBC connection to the PostgreSQL database
+ *   hosted on starbug.cs.rit.edu. Reads credentials from db.properties, opens the
+ *   tunnel via JSch, and exposes a single shared connection for all DAO classes.
+ *
+ * AUTHORS:
+ *   - Ibtehaz Rafid     (ir9269)
+ *   - Samuel Stewart    (ses1251)
+ * 
+ * COURSE:  CSCI 320 - Principles of Data Management
+ * SECTION: 02
+ * TERM:    Spring 2026
+ * GROUP:   #18
+ */
 package com.moviedb;
 
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 
-import java.io.FileInputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
 /**
- * Owns the SSH tunnel and JDBC connection to starbug.
- * Everyone calls DatabaseConnection.getConnection() --> nobody sets their own tunnel.
+ * Manages the SSH tunnel and singleton JDBC connection to the PostgreSQL database on starbug.
+ * <p>
+ * All DAO classes obtain their connection via {@link #getConnection()}.
+ * The tunnel is established once and reused for the lifetime of the application.
+ * Call {@link #close()} on application exit to release both the JDBC connection
+ * and the underlying SSH session.
  */
 public class DatabaseConnection {
 
@@ -26,8 +46,14 @@ public class DatabaseConnection {
     private DatabaseConnection() {}
 
     /**
-     * Loads db.properties, opens the SSH tunnel, and connects to Postgres.
-     * Safe to call multiple times, returns the existing connection if it's still alive.
+     * Returns the active JDBC connection, creating it (and the SSH tunnel) if necessary.
+     * <p>
+     * Reads credentials and connection details from {@code db.properties} on the classpath.
+     * Safe to call multiple times; the existing connection is returned if it is still open.
+     *
+     * @return an open {@link Connection} to the PostgreSQL database
+     * @throws Exception if the SSH tunnel cannot be established, the JDBC driver is not
+     *                   found, or the database connection fails
      */
     public static Connection getConnection() throws Exception {
         if (connection != null && !connection.isClosed()) {
@@ -60,8 +86,8 @@ public class DatabaseConnection {
     }
 
     /**
-     * Cleanly closes the JDBC connection and tears down the SSH tunnel.
-     * Call this on app exit.
+     * Cleanly closes the JDBC connection and disconnects the SSH tunnel.
+     * Should be called once on application exit to avoid leaving stale sessions on the server.
      */
     public static void close() {
         try {

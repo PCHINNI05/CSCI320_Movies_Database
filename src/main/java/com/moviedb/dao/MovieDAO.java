@@ -2,17 +2,18 @@
  * FILE: MovieDAO.java
  *
  * DESCRIPTION:
- *   MovieDAO handles all database interactions related to movies.
- *   Provides methods to search for movies by title, release date, cast member, studio, or genre,
- *   sort search results, and display the results.
- *   Each search returns movie details including title, cast, director, length, MPAA rating,
- *   release date, and average user rating.
+ *   Data access object for all movie-related database operations.
+ *   Provides parameterized search by title, release date, cast member, studio, and genre.
+ *   Handles star rating upserts, trending movie queries, and new-release lookups.
+ *   Each search returns movie details including title, cast, directors, studios, genres,
+ *   length, MPAA rating, release date, and average user rating.
  *
  * AUTHORS:
  *   - Ibtehaz Rafid     (ir9269)
  *   - Samuel Stewart    (ses1251)
  *   - Praneel Chinni    (pjc8054)
- *
+ *   - Nicholas Lim      (nl8228)
+ * 
  * COURSE:  CSCI 320 - Principles of Data Management
  * SECTION: 02
  * TERM:    Spring 2026
@@ -28,10 +29,33 @@ import java.util.List;
 
 import com.moviedb.DatabaseConnection;
 
+/**
+ * Data access object for movie search, rating, and trending queries.
+ * <p>
+ * Provides parameterized search by title, release date, cast member, studio, and genre.
+ * All searches are built on a shared base query joining {@code movie} with its related
+ * tables (cast, directors, studios, genres, platforms, ratings) and return
+ * {@link MovieResult} records. Results can be re-sorted in-memory via {@link #sort}
+ * without re-querying the database.
+ * <p>
+ * Also handles star rating upserts and trending/new-release queries used by
+ * the main menu's trending movies feature.
+ */
 public class MovieDAO {
 
     /**
-     * Represents a movie search result.
+     * Immutable value object representing a single movie search result row.
+     *
+     * @param movieId       the unique database ID of the movie
+     * @param title         the movie title
+     * @param cast          comma-separated cast member names, or {@code null} if none
+     * @param directors     comma-separated director names, or {@code null} if none
+     * @param studios       comma-separated producing studio names, or {@code null} if none
+     * @param genres        comma-separated genre names, or {@code null} if none
+     * @param lengthMinutes runtime in minutes
+     * @param mpaaRating    MPAA rating string (e.g. {@code "PG-13"})
+     * @param releaseDate   earliest release date in {@code YYYY-MM-DD} format, or {@code null}
+     * @param avgRating     average user star rating (1–5), or {@code 0.0} if no ratings exist
      */
     public record MovieResult(
             int movieId,
@@ -101,7 +125,7 @@ public class MovieDAO {
      * Adds the appropriate WHERE clause to the base query in order to search
      * for movies by release date (year or full date).
      *
-     * @param date date the release date or year prefix
+     * @param date the release date prefix to match (e.g. {@code "2022"}, {@code "2022-06"}, or {@code "2022-06-15"})
      * @return a list of matching MovieResult objects
      */
     public List<MovieResult> searchByReleaseDate(String date) {
@@ -274,8 +298,18 @@ public class MovieDAO {
         return result;
     }
 
-    // lets a user rate a movie from 1 to 5
-    // if they already rated it before, this just updates the old rating
+    /**
+     * Records or updates a star rating for a movie by the given user.
+     * <p>
+     * If the user has already rated this movie the existing rating is overwritten
+     * via {@code ON CONFLICT ... DO UPDATE}.
+     *
+     * @param connect    active database connection
+     * @param userID     the ID of the user submitting the rating
+     * @param movieID    the ID of the movie being rated
+     * @param starRating the star rating value, must be between 1 and 5 inclusive
+     * @throws Exception if the rating is outside the valid range or the upsert fails
+     */
     public void rateMovie(Connection connect, int userID, int movieID, int starRating) throws Exception {
         if (starRating < 1 || starRating > 5) {
             throw new Exception("Rating must be between 1 and 5.");
@@ -479,6 +513,84 @@ public class MovieDAO {
         }
 
         printResults(results);
+        return results;
+    }
+
+    /**
+     * Returns and prints the top 10 movies for a given user.
+     * Scored by watch frequency (weighted 1.5x) + their personal star rating.
+     * Movies the user has never watched won't appear here.
+     *
+     * @param connect active database connection
+     * @param userId the user whose history we're scoring
+     * @return list of up to 10 MovieResult objects
+     */
+    public List<MovieResult> getTopMoviesForUser(Connection connect, int userId) {
+        List<MovieResult> results = new ArrayList<>();
+
+        String sql = """
+            SELECT
+                m.movie_id,
+                m.title,
+                m.length,
+                m.mpaa_rating,
+                STRING_AGG(DISTINCT TRIM(e_a.first_name || ' ' || e_a.last_name), ', '
+                        ORDER BY TRIM(e_a.first_name || ' ' || e_a.last_name)) AS cast_members,
+                STRING_AGG(DISTINCT TRIM(e_d.first_name || ' ' || e_d.last_name), ', ') AS directors,
+                STRING_AGG(DISTINCT s.name, ', ')        AS studios,
+                STRING_AGG(DISTINCT g.genre_name, ', ')  AS genres,
+                TO_CHAR(MIN(hp.release_date), 'YYYY-MM-DD') AS release_date,
+                ROUND(AVG(r.star_rating)::numeric, 1)    AS avg_rating
+            FROM movie m
+            JOIN watches      w   ON m.movie_id = w.movie_id  AND w.user_id = ?
+            LEFT JOIN acts_in     ai  ON m.movie_id = ai.movie_id
+            LEFT JOIN employee    e_a ON ai.employee_id = e_a.employee_id
+            LEFT JOIN directs     d   ON m.movie_id = d.movie_id
+            LEFT JOIN employee    e_d ON d.employee_id = e_d.employee_id
+            LEFT JOIN produces    p   ON m.movie_id = p.movie_id
+            LEFT JOIN studio      s   ON p.studio_id = s.studio_id
+            LEFT JOIN has_genre   hg  ON m.movie_id = hg.movie_id
+            LEFT JOIN genre       g   ON hg.genre_id = g.genre_id
+            LEFT JOIN has_platform hp ON m.movie_id = hp.movie_id
+            LEFT JOIN rates       r   ON m.movie_id = r.movie_id
+            LEFT JOIN rates       ur  ON m.movie_id = ur.movie_id AND ur.user_id = ?
+            GROUP BY m.movie_id, m.title, m.length, m.mpaa_rating
+            ORDER BY (COUNT(DISTINCT w.start_time) * 1.5 + COALESCE(MAX(ur.star_rating), 0)) DESC,
+                    m.title ASC
+            LIMIT 10
+            """;
+
+        try (var statement = connect.prepareStatement(sql)) {
+            statement.setInt(1, userId);
+            statement.setInt(2, userId);
+
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                double average = rs.getDouble("avg_rating");
+                boolean hasRating = !rs.wasNull();
+                results.add(new MovieResult(
+                        rs.getInt("movie_id"),
+                        rs.getString("title"),
+                        rs.getString("cast_members"),
+                        rs.getString("directors"),
+                        rs.getString("studios"),
+                        rs.getString("genres"),
+                        rs.getInt("length"),
+                        rs.getString("mpaa_rating"),
+                        rs.getString("release_date"),
+                        hasRating ? average : 0.0
+                ));
+            }
+        } catch (Exception e) {
+            System.err.println("  Top movies fetch failed: " + e.getMessage());
+        }
+
+        System.out.println("\n  Top 10 Movies:");
+        if (results.isEmpty()) {
+            System.out.println("  No watch history found for this user.");
+        } else {
+            printResults(results);
+        }
         return results;
     }
 
