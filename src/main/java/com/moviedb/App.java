@@ -1,3 +1,23 @@
+/**
+ * FILE: App.java
+ *
+ * DESCRIPTION:
+ *   Application entry point and top-level CLI driver for the movie streaming application.
+ *   Manages session state, the pre-login landing menu, and the main authenticated menu loop.
+ *   All database logic is delegated to DAO instances; this class handles only
+ *   user input, output formatting, and menu navigation.
+ *
+ * AUTHORS:
+ *   - Ibtehaz Rafid     (ir9269)
+ *   - Samuel Stewart    (ses1251)
+ *   - Praneel Chinni    (pjc8054)
+ *   - Nicholas Lim      (nl8228)
+ * 
+ * COURSE:  CSCI 320 - Principles of Data Management
+ * SECTION: 02
+ * TERM:    Spring 2026
+ * GROUP:   #18
+ */
 package com.moviedb;
 
 import java.util.List;
@@ -13,8 +33,12 @@ import com.moviedb.dao.SocialDAO;
 import com.moviedb.dao.MovieDAO;
 
 /**
- * Entry point. Handles the top-level menu and keeps track of who's logged in.
- * All feature logic lives in the DAOs, this file just drives the UI.
+ * Application entry point and top-level UI driver for the movie streaming CLI.
+ * <p>
+ * Holds the active session state ({@link #currentUserId}, {@link #currentUsername})
+ * and manages the pre-login landing menu and the main authenticated menu loop.
+ * All database logic is delegated to DAO instances; this class handles only
+ * user input, output formatting, and menu navigation.
  */
 public class App {
 
@@ -52,8 +76,11 @@ public class App {
     }
 
     // --> Menus <--
+
     /**
-     * The pre-login menu. Returns false when the user decides to exit.
+     * Displays the pre-login landing menu and handles the user's selection.
+     *
+     * @return {@code true} to keep the landing loop running, {@code false} when the user exits
      */
     private static boolean showLandingMenu() {
         printDivider();
@@ -79,8 +106,8 @@ public class App {
     }
 
     /**
-     * The main app menu --> shown after a user is logged in. Loops until the
-     * user logs out.
+     * Displays the main authenticated menu and routes user input to the appropriate
+     * feature handler. Loops until the user selects logout.
      */
     private static void showMainMenu() {
         boolean loggedIn = true;
@@ -122,7 +149,6 @@ public class App {
         }
     }
 
-    // --> Auth stubs (will be replaced when UserDAO is built) <--
     /**
      * Full movie search flow. Pick a filter, enter a term, and browse results.
      * Re-sorting is in-memory so we don't hit the DB twice for same query.
@@ -274,6 +300,10 @@ public class App {
         return false;
     }
 
+    /**
+     * Displays the Collections sub-menu and routes the user's selection to the
+     * appropriate collection management handler. Loops until the user navigates back.
+     */
     private static void handleCollections() {
         boolean inCollectionsMenu = true;
 
@@ -395,10 +425,9 @@ public class App {
     }
 
     /**
-     * Prompts for a collection ID and movie ID, then adds that movie to the
-     * collection if it belongs to the logged-in user. Movie ID must be valid,
-     * but there's no check to prevent duplicates (a movie can be added multiple
-     * times).
+     * Prompts for a collection ID and movie ID, then adds that movie to the collection
+     * if it belongs to the logged-in user. Duplicate entries are silently ignored,
+     * a movie already present in the collection will not be added twice.
      */
     private static void addMovieToCollection() {
         int collectionId = readIntPrompt("Collection ID: ");
@@ -462,8 +491,8 @@ public class App {
     }
 
     /**
-     * Fetches and displays all followers of the logged-in user, along with
-     * their usernames and full names.
+     * Fetches and displays all users who follow the logged-in user,
+     * showing their usernames and full names.
      */
     private static void viewMyFollowers() {
         try {
@@ -475,8 +504,8 @@ public class App {
     }
 
     /**
-     * Fetches and displays all users that the logged-in user is following,
-     * along with their usernames and full names.
+     * Fetches and displays all users the logged-in user is following,
+     * showing their usernames and full names.
      */
     private static void viewMyFollowing() {
         try {
@@ -488,7 +517,8 @@ public class App {
     }
 
     /**
-     * Follows a user by their username.
+     * Prompts for an email address and follows the matching user on behalf of
+     * the logged-in user.
      */
     private static void followUser() {
         String userEmail = readLine("User email to follow: ");
@@ -502,7 +532,8 @@ public class App {
     }
 
     /**
-     * Unfollows a user by their username.
+     * Prompts for an email address and unfollows the matching user on behalf of
+     * the logged-in user.
      */
     private static void unfollowUser() {
         String userEmail = readLine("User email to unfollow: ");
@@ -614,6 +645,10 @@ public class App {
         }
     }
 
+    /**
+     * Prompts the logged-in user for a movie ID and a star rating (1–5),
+     * then submits the rating via {@link MovieDAO#rateMovie}.
+     */
     private static void handleRateMovie() {
         int movieId = readIntPrompt("Movie ID to rate: ");
         int rating = readIntPrompt("Star rating (1-5): ");
@@ -627,6 +662,11 @@ public class App {
         }
     }
 
+    /**
+     * Presents a sub-menu for watching a single movie by ID or playing an entire
+     * collection. Every played movie is recorded in the {@code watches} table
+     * via {@link WatchDAO}.
+     */
     private static void handleWatchMovie() {
         printDivider();
         System.out.println("  1. Watch a single movie");
@@ -661,6 +701,13 @@ public class App {
         }
     }
 
+    /**
+     * Prints the given prompt and reads an integer from standard input.
+     * Re-prompts until the user enters a valid integer.
+     *
+     * @param prompt the label to display before the input cursor
+     * @return the integer value entered by the user
+     */
     private static int readIntPrompt(String prompt) {
         while (true) {
             System.out.print("  " + prompt);
@@ -674,6 +721,10 @@ public class App {
     }
 
     // --> UI Helpers <--
+
+    /**
+     * Prints the application title banner to standard output on startup.
+     */
     private static void printBanner() {
         System.out.println();
         System.out.println("  ╔══════════════════════════════════╗");
@@ -684,6 +735,9 @@ public class App {
         System.out.println("  Connecting to database...");
     }
 
+    /**
+     * Prints a horizontal divider line to standard output for menu formatting.
+     */
     private static void printDivider() {
         System.out.println();
         System.out.println("  ──────────────────────────────────");

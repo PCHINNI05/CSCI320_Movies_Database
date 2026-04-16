@@ -1,11 +1,44 @@
+/**
+ * FILE: CollectionDAO.java
+ *
+ * DESCRIPTION:
+ *   Data access object for movie collection management.
+ *   Provides create, rename, delete, and content-management operations for
+ *   user-owned collections. All mutating methods verify collection ownership
+ *   before executing to prevent cross-user modifications.
+ *
+ * AUTHORS:
+ *   - Ibtehaz Rafid     (ir9269)
+ *   - Samuel Stewart    (ses1251)
+ *   - Nicholas Lim      (nl8228)
+ * 
+ * COURSE:  CSCI 320 - Principles of Data Management
+ * SECTION: 02
+ * TERM:    Spring 2026
+ * GROUP:   #18
+ */
 package com.moviedb.dao;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 
+/**
+ * Data access object for movie collection management.
+ * <p>
+ * Provides create, rename, delete, and content-management operations for
+ * user-owned collections. All mutating methods verify collection ownership
+ * before executing to prevent cross-user modifications.
+ */
 public class CollectionDAO {
 
-    // makes a new collection for the current user
+    /**
+     * Creates a new, empty collection owned by the specified user.
+     *
+     * @param connect        active database connection
+     * @param userID         the ID of the user creating the collection
+     * @param collectionName the display name for the new collection
+     * @throws Exception if the insert fails
+     */
     public void createCollection(Connection connect, int userID, String collectionName) throws Exception {
         String sql = """
             INSERT INTO collection (collection_name, user_id)
@@ -18,7 +51,15 @@ public class CollectionDAO {
         }
     }
 
-    // lets the user change the name of one of their collections
+    /**
+     * Renames an existing collection owned by the specified user.
+     *
+     * @param connect      active database connection
+     * @param userID       the ID of the user who owns the collection
+     * @param collectionID the ID of the collection to rename
+     * @param newName      the new display name for the collection
+     * @throws Exception if the collection does not belong to the user, or the update fails
+     */
     public void renameCollection(Connection connect, int userID, int collectionID, String newName) throws Exception {
         assertCollectionOwned(connect, userID, collectionID);
 
@@ -40,7 +81,17 @@ public class CollectionDAO {
         }
     }
 
-    // deletes a collection and clears out its movies first so foreign key issues do not happen
+    /**
+     * Deletes a collection and all of its movie associations.
+     * <p>
+     * Removes all rows from {@code collection_contents} for this collection first
+     * to satisfy foreign key constraints before deleting the collection itself.
+     *
+     * @param connect      active database connection
+     * @param userID       the ID of the user who owns the collection
+     * @param collectionID the ID of the collection to delete
+     * @throws Exception if the collection does not belong to the user or a delete fails
+     */
     public void deleteCollection(Connection connect, int userID, int collectionID) throws Exception {
         assertCollectionOwned(connect, userID, collectionID);
 
@@ -70,7 +121,18 @@ public class CollectionDAO {
             }
         }
     }
-    // adds a movie into one of the user's collections
+    /**
+     * Adds a movie to one of the user's collections.
+     * <p>
+     * If the movie is already present in the collection the insert is silently
+     * ignored via {@code ON CONFLICT DO NOTHING} and a message is printed.
+     *
+     * @param connect      active database connection
+     * @param userID       the ID of the user who owns the collection
+     * @param collectionID the ID of the target collection
+     * @param movieID      the ID of the movie to add
+     * @throws Exception if the collection does not belong to the user or the insert fails
+     */
     public void addMovieToCollection(Connection connect, int userID, int collectionID, int movieID) throws Exception {
         assertCollectionOwned(connect, userID, collectionID);
 
@@ -90,7 +152,16 @@ public class CollectionDAO {
         }
     }
 
-    // removes a movie from a collection the user owns
+    /**
+     * Removes a movie from one of the user's collections.
+     *
+     * @param connect      active database connection
+     * @param userID       the ID of the user who owns the collection
+     * @param collectionID the ID of the collection to modify
+     * @param movieID      the ID of the movie to remove
+     * @throws Exception if the collection does not belong to the user, the movie is not
+     *                   in the collection, or the delete fails
+     */
     public void removeMovieFromCollection(Connection connect, int userID, int collectionID, int movieID) throws Exception {
         assertCollectionOwned(connect, userID, collectionID);
 
@@ -110,7 +181,16 @@ public class CollectionDAO {
         }
     }
 
-    // shows all collections for the current user, along with movie count and total runtime
+    /**
+     * Prints a summary of all collections owned by the given user to standard output.
+     * <p>
+     * Each row shows the collection ID, name, movie count, and total runtime
+     * formatted as {@code H:MM}.
+     *
+     * @param connect active database connection
+     * @param userID  the ID of the user whose collections should be listed
+     * @throws Exception if the query fails
+     */
     public void getUserCollections(Connection connect, int userID) throws Exception {
         String sql = """
             SELECT
@@ -157,7 +237,17 @@ public class CollectionDAO {
         }
     }
 
-    // shows all the movies inside one specific collection
+    /**
+     * Prints the movie contents of a specific collection to standard output.
+     * <p>
+     * Lists each movie's ID, title, and formatted runtime in ascending title order.
+     * Only accessible if the collection belongs to the specified user.
+     *
+     * @param connect      active database connection
+     * @param userID       the ID of the user who owns the collection
+     * @param collectionID the ID of the collection to inspect
+     * @throws Exception if the collection does not belong to the user or the query fails
+     */
     public void getCollectionDetails(Connection connect, int userID, int collectionID) throws Exception {
         assertCollectionOwned(connect, userID, collectionID);
 
@@ -207,7 +297,14 @@ public class CollectionDAO {
         }
     }
 
-    // just a check  to make sure the collection actually belongs to the logged-in user
+    /**
+     * Verifies that the specified collection belongs to the specified user.
+     *
+     * @param connect      active database connection
+     * @param userID       the ID of the user to check ownership for
+     * @param collectionID the ID of the collection to verify
+     * @throws Exception if no matching collection/user pair is found
+     */
     private void assertCollectionOwned(Connection connect, int userID, int collectionID) throws Exception {
         String sql = """
             SELECT 1
@@ -226,7 +323,13 @@ public class CollectionDAO {
             }
         }
     }
-// turns total minutes into hours:minutes format like 2:15
+
+    /**
+     * Converts a total minute count into an {@code H:MM} formatted string.
+     *
+     * @param totalMinutes the total duration in minutes
+     * @return a string in {@code H:MM} format (e.g. {@code "2:05"} for 125 minutes)
+     */
     private String formatMinutes(int totalMinutes) {
         int hours = totalMinutes / 60;
         int minutes = totalMinutes % 60;
