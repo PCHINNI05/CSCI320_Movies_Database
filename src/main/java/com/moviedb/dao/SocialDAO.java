@@ -1,3 +1,21 @@
+/**
+ * FILE: SocialDAO.java
+ *
+ * DESCRIPTION:
+ *   Data access object for social graph operations.
+ *   Handles displaying follower and following lists, following new users by email,
+ *   and unfollowing existing ones.
+ *
+ * AUTHORS:
+ *   - Ibtehaz Rafid     (ir9269)
+ *   - Samuel Stewart    (ses1251)
+ *   - Praneel Chinni    (pjc8054)
+ * 
+ * COURSE:  CSCI 320 - Principles of Data Management
+ * SECTION: 02
+ * TERM:    Spring 2026
+ * GROUP:   #18
+ */
 package com.moviedb.dao;
 
 import java.sql.Connection;
@@ -5,13 +23,19 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 /**
- * Everything social-related --> viewing followers/following,
- * following users, and unfollowing users.
+ * Data access object for social graph operations.
+ * <p>
+ * Handles displaying follower and following lists, following new users by email,
+ * and unfollowing existing ones.
  */
 public class SocialDAO {
 
     /**
-     * Displays all followers of the given user, along with username and full name.
+     * Prints all users who follow the given user to standard output,
+     * showing each follower's username and full name.
+     *
+     * @param connect active database connection
+     * @param userId  the ID of the user whose follower list should be displayed
      */
     public void viewFollowers(Connection connect, int userId) {
         String sql = """
@@ -45,8 +69,11 @@ public class SocialDAO {
     }
 
     /**
-     * Displays all users that the given user is following,
-     * along with username and full name.
+     * Prints all users the given user is following to standard output,
+     * showing each followee's username and full name.
+     *
+     * @param connect active database connection
+     * @param userId  the ID of the user whose following list should be displayed
      */
     public void viewFollowing(Connection connect, int userId) {
         String sql = """
@@ -80,9 +107,14 @@ public class SocialDAO {
     }
 
     /**
-     * Follows a user by their email.
-     * Does nothing if the email doesn't exist, if the user tries to follow themself,
-     * or if they are already following that user.
+     * Creates a follow relationship from the given user to the user identified by email.
+     * <p>
+     * No action is taken if the target email does not exist, if the user attempts
+     * to follow themselves, or if the relationship already exists.
+     *
+     * @param connect   active database connection
+     * @param userId    the ID of the user initiating the follow
+     * @param userEmail the email address of the user to follow
      */
     public void followUser(Connection connect, int userId, String userEmail) {
         int targetUserId = getUserIdByEmail(connect, userEmail);
@@ -118,8 +150,14 @@ public class SocialDAO {
     }
 
     /**
-     * Unfollows a user by their email.
-     * Does nothing if the email doesn't exist or if the follow relationship doesn't exist.
+     * Removes a follow relationship from the given user to the user identified by email.
+     * <p>
+     * No action is taken if the target email does not exist or if no follow
+     * relationship currently exists.
+     *
+     * @param connect   active database connection
+     * @param userId    the ID of the user initiating the unfollow
+     * @param userEmail the email address of the user to unfollow
      */
     public void unfollowUser(Connection connect, int userId, String userEmail) {
         int targetUserId = getUserIdByEmail(connect, userEmail);

@@ -2,17 +2,18 @@
  * FILE: MovieDAO.java
  *
  * DESCRIPTION:
- *   MovieDAO handles all database interactions related to movies.
- *   Provides methods to search for movies by title, release date, cast member, studio, or genre,
- *   sort search results, and display the results.
- *   Each search returns movie details including title, cast, director, length, MPAA rating,
- *   release date, and average user rating.
+ *   Data access object for all movie-related database operations.
+ *   Provides parameterized search by title, release date, cast member, studio, and genre.
+ *   Handles star rating upserts, trending movie queries, and new-release lookups.
+ *   Each search returns movie details including title, cast, directors, studios, genres,
+ *   length, MPAA rating, release date, and average user rating.
  *
  * AUTHORS:
  *   - Ibtehaz Rafid     (ir9269)
  *   - Samuel Stewart    (ses1251)
  *   - Praneel Chinni    (pjc8054)
- *
+ *   - Nicholas Lim      (nl8228)
+ * 
  * COURSE:  CSCI 320 - Principles of Data Management
  * SECTION: 02
  * TERM:    Spring 2026
@@ -29,10 +30,33 @@ import java.util.List;
 
 import com.moviedb.DatabaseConnection;
 
+/**
+ * Data access object for movie search, rating, and trending queries.
+ * <p>
+ * Provides parameterized search by title, release date, cast member, studio, and genre.
+ * All searches are built on a shared base query joining {@code movie} with its related
+ * tables (cast, directors, studios, genres, platforms, ratings) and return
+ * {@link MovieResult} records. Results can be re-sorted in-memory via {@link #sort}
+ * without re-querying the database.
+ * <p>
+ * Also handles star rating upserts and trending/new-release queries used by
+ * the main menu's trending movies feature.
+ */
 public class MovieDAO {
 
     /**
-     * Represents a movie search result.
+     * Immutable value object representing a single movie search result row.
+     *
+     * @param movieId       the unique database ID of the movie
+     * @param title         the movie title
+     * @param cast          comma-separated cast member names, or {@code null} if none
+     * @param directors     comma-separated director names, or {@code null} if none
+     * @param studios       comma-separated producing studio names, or {@code null} if none
+     * @param genres        comma-separated genre names, or {@code null} if none
+     * @param lengthMinutes runtime in minutes
+     * @param mpaaRating    MPAA rating string (e.g. {@code "PG-13"})
+     * @param releaseDate   earliest release date in {@code YYYY-MM-DD} format, or {@code null}
+     * @param avgRating     average user star rating (1–5), or {@code 0.0} if no ratings exist
      */
     public record MovieResult(
             int movieId,
@@ -102,7 +126,7 @@ public class MovieDAO {
      * Adds the appropriate WHERE clause to the base query in order to search
      * for movies by release date (year or full date).
      *
-     * @param date date the release date or year prefix
+     * @param date the release date prefix to match (e.g. {@code "2022"}, {@code "2022-06"}, or {@code "2022-06-15"})
      * @return a list of matching MovieResult objects
      */
     public List<MovieResult> searchByReleaseDate(String date) {
@@ -275,8 +299,18 @@ public class MovieDAO {
         return result;
     }
 
-    // lets a user rate a movie from 1 to 5
-    // if they already rated it before, this just updates the old rating
+    /**
+     * Records or updates a star rating for a movie by the given user.
+     * <p>
+     * If the user has already rated this movie the existing rating is overwritten
+     * via {@code ON CONFLICT ... DO UPDATE}.
+     *
+     * @param connect    active database connection
+     * @param userID     the ID of the user submitting the rating
+     * @param movieID    the ID of the movie being rated
+     * @param starRating the star rating value, must be between 1 and 5 inclusive
+     * @throws Exception if the rating is outside the valid range or the upsert fails
+     */
     public void rateMovie(Connection connect, int userID, int movieID, int starRating) throws Exception {
         if (starRating < 1 || starRating > 5) {
             throw new Exception("Rating must be between 1 and 5.");
