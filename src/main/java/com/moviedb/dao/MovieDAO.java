@@ -483,6 +483,84 @@ public class MovieDAO {
     }
 
     /**
+     * Returns and prints the top 10 movies for a given user.
+     * Scored by watch frequency (weighted 1.5x) + their personal star rating.
+     * Movies the user has never watched won't appear here.
+     *
+     * @param connect active database connection
+     * @param userId the user whose history we're scoring
+     * @return list of up to 10 MovieResult objects
+     */
+    public List<MovieResult> getTopMoviesForUser(Connection connect, int userId) {
+        List<MovieResult> results = new ArrayList<>();
+
+        String sql = """
+            SELECT
+                m.movie_id,
+                m.title,
+                m.length,
+                m.mpaa_rating,
+                STRING_AGG(DISTINCT TRIM(e_a.first_name || ' ' || e_a.last_name), ', '
+                        ORDER BY TRIM(e_a.first_name || ' ' || e_a.last_name)) AS cast_members,
+                STRING_AGG(DISTINCT TRIM(e_d.first_name || ' ' || e_d.last_name), ', ') AS directors,
+                STRING_AGG(DISTINCT s.name, ', ')        AS studios,
+                STRING_AGG(DISTINCT g.genre_name, ', ')  AS genres,
+                TO_CHAR(MIN(hp.release_date), 'YYYY-MM-DD') AS release_date,
+                ROUND(AVG(r.star_rating)::numeric, 1)    AS avg_rating
+            FROM movie m
+            JOIN watches      w   ON m.movie_id = w.movie_id  AND w.user_id = ?
+            LEFT JOIN acts_in     ai  ON m.movie_id = ai.movie_id
+            LEFT JOIN employee    e_a ON ai.employee_id = e_a.employee_id
+            LEFT JOIN directs     d   ON m.movie_id = d.movie_id
+            LEFT JOIN employee    e_d ON d.employee_id = e_d.employee_id
+            LEFT JOIN produces    p   ON m.movie_id = p.movie_id
+            LEFT JOIN studio      s   ON p.studio_id = s.studio_id
+            LEFT JOIN has_genre   hg  ON m.movie_id = hg.movie_id
+            LEFT JOIN genre       g   ON hg.genre_id = g.genre_id
+            LEFT JOIN has_platform hp ON m.movie_id = hp.movie_id
+            LEFT JOIN rates       r   ON m.movie_id = r.movie_id
+            LEFT JOIN rates       ur  ON m.movie_id = ur.movie_id AND ur.user_id = ?
+            GROUP BY m.movie_id, m.title, m.length, m.mpaa_rating
+            ORDER BY (COUNT(DISTINCT w.start_time) * 1.5 + COALESCE(MAX(ur.star_rating), 0)) DESC,
+                    m.title ASC
+            LIMIT 10
+            """;
+
+        try (var statement = connect.prepareStatement(sql)) {
+            statement.setInt(1, userId);
+            statement.setInt(2, userId);
+
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                double average = rs.getDouble("avg_rating");
+                boolean hasRating = !rs.wasNull();
+                results.add(new MovieResult(
+                        rs.getInt("movie_id"),
+                        rs.getString("title"),
+                        rs.getString("cast_members"),
+                        rs.getString("directors"),
+                        rs.getString("studios"),
+                        rs.getString("genres"),
+                        rs.getInt("length"),
+                        rs.getString("mpaa_rating"),
+                        rs.getString("release_date"),
+                        hasRating ? average : 0.0
+                ));
+            }
+        } catch (Exception e) {
+            System.err.println("  Top movies fetch failed: " + e.getMessage());
+        }
+
+        System.out.println("\n  Top 10 Movies:");
+        if (results.isEmpty()) {
+            System.out.println("  No watch history found for this user.");
+        } else {
+            printResults(results);
+        }
+        return results;
+    }
+
+    /**
      * Helper function to return a lowercase version of the string.
      *
      * @param s the input string
