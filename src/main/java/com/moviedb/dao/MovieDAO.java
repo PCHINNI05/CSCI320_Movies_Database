@@ -637,9 +637,39 @@ public class MovieDAO {
      * @param userID ID of the caller to generate recommendations for
      */
     public void recommendMovies(Connection connect, int userID) {
+
+        // Pull the user's watched genres first for the header
+        String genreSql = """
+                SELECT STRING_AGG(DISTINCT g.genre_name, ', ' ORDER BY g.genre_name) AS genres
+                FROM has_genre hg
+                JOIN genre g    ON hg.genre_id = g.genre_id
+                JOIN watches w  ON hg.movie_id = w.movie_id
+                WHERE w.user_id = ?
+                """;
+
+        String watchedGenres = null;
+        try (PreparedStatement gs = connect.prepareStatement(genreSql)) {
+            gs.setInt(1, userID);
+            ResultSet gr = gs.executeQuery();
+            if (gr.next()) watchedGenres = gr.getString("genres");
+        } catch (Exception e) {
+            // non-fatal, header just won't show genres
+        }
+
         String sql = """
-                SELECT m.movie_id, m.title
+                SELECT
+                    m.movie_id,
+                    m.title,
+                    m.length,
+                    m.mpaa_rating,
+                    STRING_AGG(DISTINCT g.genre_name, ', ') AS genres,
+                    TO_CHAR(MIN(hp.release_date), 'YYYY-MM-DD') AS release_date,
+                    ROUND(AVG(r.star_rating)::numeric, 1)   AS avg_rating
                 FROM movie m
+                LEFT JOIN has_genre   hg ON m.movie_id = hg.movie_id
+                LEFT JOIN genre       g  ON hg.genre_id = g.genre_id
+                LEFT JOIN has_platform hp ON m.movie_id = hp.movie_id
+                LEFT JOIN rates       r  ON m.movie_id = r.movie_id
                 WHERE m.movie_id IN (
                     SELECT DISTINCT w.movie_id
                     FROM watches w
@@ -650,25 +680,28 @@ public class MovieDAO {
                         WHERE wb.user_id = ?
                         AND wc.user_id != ?
                         GROUP BY wc.user_id
-                        HAVING COUNT(*) >= 2
+                        HAVING COUNT(DISTINCT wc.movie_id) >= 2
                     )
                 )
                 AND m.movie_id NOT IN (
-                    SELECT movie_id
-                    FROM watches
-                    WHERE user_id = ?
+                    SELECT movie_id FROM watches WHERE user_id = ?
                 )
                 AND m.movie_id IN (
-                    SELECT hg.movie_id
-                    FROM has_genre hg
-                    WHERE hg.genre_id IN (
-                        SELECT hga.genre_id
-                        FROM has_genre hga, watches w
-                        WHERE hga.movie_id = w.movie_id
-                        AND w.user_id = ?
+                    SELECT hga.movie_id
+                    FROM has_genre hga
+                    JOIN watches w ON hga.movie_id != w.movie_id
+                    WHERE hga.genre_id IN (
+                        SELECT hgb.genre_id
+                        FROM has_genre hgb
+                        JOIN watches w ON hgb.movie_id = w.movie_id
+                        WHERE w.user_id = ?
                     )
                 )
+                GROUP BY m.movie_id, m.title, m.length, m.mpaa_rating
+                ORDER BY AVG(r.star_rating) DESC NULLS LAST, m.title ASC
+                LIMIT 20
                 """;
+
         try (PreparedStatement stmt = connect.prepareStatement(sql)) {
             stmt.setInt(1, userID);
             stmt.setInt(2, userID);
@@ -676,20 +709,35 @@ public class MovieDAO {
             stmt.setInt(4, userID);
 
             ResultSet rs = stmt.executeQuery();
-            boolean found = false;
 
+            System.out.println();
+            System.out.println("  Recommended For You");
+            if (watchedGenres != null) {
+                System.out.println("  Based on you and similar users' interests in: " + watchedGenres);
+            }
+            System.out.println("  ──────────────────────────────────");
+
+            boolean found = false;
+            int i = 1;
             while (rs.next()) {
                 found = true;
-                System.out.println("  [" + rs.getInt("movie_id") + "] "
-                    + rs.getString("title"));
+                String year = rs.getString("release_date") != null
+                        ? rs.getString("release_date").substring(0, 4) : "N/A";
+                double avg = rs.getDouble("avg_rating");
+                String rating = rs.wasNull() ? "no ratings" : String.format("%.1f*", avg);
+                String genres = rs.getString("genres") != null ? rs.getString("genres") : "N/A";
+
+                System.out.printf("  [%d] %s (%s)%n", i++, rs.getString("title"), year);
+                System.out.printf("      Genre: %-30s  Rating: %s%n", genres, rating);
             }
 
             if (!found) {
-                System.out.println("  No recommendations available at the moment. Try expanding your watch activity to improve recommendations");
+                System.out.println("  No recommendations available yet.");
+                System.out.println("  Watch more movies to improve your recommendations.");
             }
+
         } catch (Exception e) {
             System.err.println("  Couldn't load recommendations: " + e.getMessage());
         }
     }
-
 }
