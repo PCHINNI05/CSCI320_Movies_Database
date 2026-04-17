@@ -22,6 +22,7 @@
 package com.moviedb.dao;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -618,4 +619,77 @@ public class MovieDAO {
             return s;
         }
     }
+
+    /**
+     * Movie recommendation function based on the user's and
+     * similar user's activity.
+     * 
+     * The recommendation process:
+     * 1) Find similar users who watched at least 2 of the same movies as
+     *    the current user.
+     * 2) Take the movies that the similar users watched and remove the ones
+     *    the current user watched.
+     * 3) Further refine by only returning the movies that have the
+     *    same genres as the movies that the current user already watched.
+     * The function prints out the result afterwards.
+     * 
+     * @param connect active database connection for query
+     * @param userID ID of the caller to generate recommendations for
+     */
+    public void recommendMovies(Connection connect, int userID) {
+        String sql = """
+                SELECT m.movie_id, m.title
+                FROM movie m
+                WHERE m.movie_id IN (
+                    SELECT DISTINCT w.movie_id
+                    FROM watches w
+                    WHERE w.user_id IN (
+                        SELECT wc.user_id
+                        FROM watches wb
+                        JOIN watches wc ON wb.movie_id = wc.movie_id
+                        WHERE wb.user_id = ?
+                        AND wc.user_id != ?
+                        GROUP BY wc.user_id
+                        HAVING COUNT(*) >= 2
+                    )
+                )
+                AND m.movie_id NOT IN (
+                    SELECT movie_id
+                    FROM watches
+                    WHERE user_id = ?
+                )
+                AND m.movie_id IN (
+                    SELECT hg.movie_id
+                    FROM has_genre hg
+                    WHERE hg.genre_id IN (
+                        SELECT hga.genre_id
+                        FROM has_genre hga, watches w
+                        WHERE hga.movie_id = w.movie_id
+                        AND w.user_id = ?
+                    )
+                )
+                """;
+        try (PreparedStatement stmt = connect.prepareStatement(sql)) {
+            stmt.setInt(1, userID);
+            stmt.setInt(2, userID);
+            stmt.setInt(3, userID);
+            stmt.setInt(4, userID);
+
+            ResultSet rs = stmt.executeQuery();
+            boolean found = false;
+
+            while (rs.next()) {
+                found = true;
+                System.out.println("  [" + rs.getInt("movie_id") + "] "
+                    + rs.getString("title"));
+            }
+
+            if (!found) {
+                System.out.println("  No recommendations available at the moment. Try expanding your watch activity to improve recommendations");
+            }
+        } catch (Exception e) {
+            System.err.println("  Couldn't load recommendations: " + e.getMessage());
+        }
+    }
+
 }
