@@ -141,5 +141,5 @@ git push origin feature/your-feature
 ## Phase Roadmap
 
 - [x] **Phase 1** — EER Diagram + Reduction to Tables
-- [ ] **Phase 2** — Schema creation, data loading, full Java application
-- [ ] **Phase 3** — Data analytics (Python + pandas + matplotlib)
+- [x] **Phase 2** — Schema creation, data loading, full Java application
+- [x] **Phase 3** — Data analytics (Python + pandas + matplotlib)
